@@ -4,6 +4,7 @@ import download from "downloadjs"
 import { ProcessingToken } from "./tokens";
 
 export async function process(tokens: ProcessingToken[], data: Blob): Promise<void> {
+  console.log(tokens);
   let currentTime = 0;
   const times: Array<{when: number; offset: number; duration: number}> = [];
   tokens.forEach(token => {
@@ -11,7 +12,7 @@ export async function process(tokens: ProcessingToken[], data: Blob): Promise<vo
       const offset = token.timings.start / 1000;
       const duration = (token.timings.end - token.timings.start) / 1000;
       times.push({when: currentTime, offset: offset - 0.5, duration: duration + 0.25});
-      currentTime = currentTime + duration + 0.25;
+      currentTime += duration + 0.25;
     } else if (token.type === "PAUSE") {
       currentTime += token.delay;
     }
