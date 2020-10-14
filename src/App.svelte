@@ -3,7 +3,7 @@
   import Processing from "./Processing.svelte";
   import ScriptEntry from "./ScriptEntry.svelte";
 
-  let lines: string[] = [];
+  let scriptLines: string[] = [];
   let submitted: boolean = false;
   function submit() {
     submitted = true;
@@ -14,10 +14,10 @@
 </script>
 
 {#if !submitted}
-  <ScriptEntry bind:lines/>
+  <ScriptEntry bind:scriptLines/>
   <button on:click={submit}>Submit</button>
 {:else if data === null}
-  <AudioRecorder lines={lines} bind:times bind:data/>
+  <AudioRecorder lines={scriptLines} bind:times bind:data/>
 {:else}
   <Processing times={times} data={data}/>
 {/if}

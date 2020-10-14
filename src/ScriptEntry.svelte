@@ -1,8 +1,15 @@
 <script lang="ts">
   let script: string = "";
 
-  export let lines: string[];
-  $: lines = script.split("\n");
+  let lines: string[];
+  $: lines = script.split(/[\n.]/);
+
+  let filtered: string[];
+  $: filtered = lines
+    .filter(line => line.trim().replaceAll(/[^a-zA-Z]/g, "").length);
+
+  export let scriptLines: string[];
+  $: scriptLines = filtered;
 </script>
 
 <style>
@@ -14,3 +21,9 @@
 
 <p>Script:</p>
 <textarea bind:value={script}/>
+
+<ol>
+  {#each scriptLines as line}
+    <li>{line}</li>
+  {/each}
+</ol>
