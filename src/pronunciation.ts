@@ -1,4 +1,9 @@
-import cmu from "cmu-pronouncing-dictionary";
+let cmu: Record<string, string> = {};
+
+fetch("https://raw.githubusercontent.com/words/cmu-pronouncing-dictionary/master/index.json")
+  .then(response => response.json())
+  .then(response => cmu = response)
+  .catch(err => alert(`Failed to fetch CMU Pronouncing Dictionary: ${err}`));
 
 const phonemeMap = {
   AA: "A",
