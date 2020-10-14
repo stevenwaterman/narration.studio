@@ -1,10 +1,11 @@
 <script lang="ts">
   import {process} from "./processor";
-  export let times: Array<{start: number; end: number}>;
+  import type { ProcessingToken } from "./tokens";
+  export let tokens: ProcessingToken[];
   export let data: Blob;
 </script>
 Hello
-{#await process(times, data)}
+{#await process(tokens, data)}
   Processing
 {:then audio}
   Done!

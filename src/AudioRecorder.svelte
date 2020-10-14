@@ -2,21 +2,26 @@
   import { onMount } from "svelte";
   import leven from "fast-levenshtein";
   import { toPronunciation } from "./pronunciation";
+  import type { TextToken, TimingToken } from "./tokens";
 
-  export let lines: string[];
-  export let times: Record<number, {start: number, end: number}> = {};
+  export let textTokens: TextToken[];
+  export let timingTokens: TimingToken[] = [];
   export let data: Blob | null = null;
 
-  let currentLineNumber: number = 0;
+  let currentTokenNumber: number = 0;
+  let currentToken: TextToken;
+  $: currentToken = textTokens[currentTokenNumber];
   let currentLine: string | undefined;
-  $: currentLine = lines[currentLineNumber];
+  $: currentLine = currentToken === undefined ? undefined : currentToken.script;
   let currentLinePronunciation: string | undefined;
   $: currentLinePronunciation = currentLine === undefined ? undefined : toPronunciation(currentLine);
 
-  let prevLineNumber: number | undefined;
-  $: prevLineNumber = currentLineNumber ? currentLineNumber - 1 : undefined;
+  let prevTokenNumber: number | undefined;
+  $: prevTokenNumber = currentTokenNumber ? currentTokenNumber - 1 : undefined;
+  let prevToken: TextToken | undefined;
+  $: prevToken = prevTokenNumber === undefined ? undefined : textTokens[prevTokenNumber];
   let prevLine: string | undefined;
-  $: prevLine = prevLineNumber === undefined ? undefined : lines[currentLineNumber - 1];
+  $: prevLine = prevToken === undefined ? undefined : prevToken.script;
   let prevLinePronunciation: string | undefined;
   $: prevLinePronunciation = prevLine === undefined ? undefined : toPronunciation(prevLine);
 
@@ -59,24 +64,37 @@
     const prevDistance = prevLinePronunciation === undefined ? 1000 : leven.get(pronunciation, prevLinePronunciation) / prevLinePronunciation.length;
     const currDistance = currentLinePronunciation === undefined ? 1000 : leven.get(pronunciation, currentLinePronunciation) / currentLinePronunciation.length;
 
-    const prevDistanceLowerBound = prevDistance * confidence;
-    const prevDistanceUpperBound = prevDistance / confidence;
+    const nonZeroConfidence = confidence || 1;
 
-    const currDistanceLowerBound = currDistance * confidence;
-    const currDistanceUpperBound = currDistance / confidence;
+    const prevDistanceLowerBound = prevDistance * nonZeroConfidence;
+    const prevDistanceUpperBound = prevDistance / nonZeroConfidence;
+
+    const currDistanceLowerBound = currDistance * nonZeroConfidence;
+    const currDistanceUpperBound = currDistance / nonZeroConfidence;
 
     const maxLower = Math.max(prevDistanceLowerBound, currDistanceLowerBound);
     const minUpper = Math.min(prevDistanceUpperBound, currDistanceUpperBound);
+
+    console.log(prevDistance, currDistance, confidence);
     
     if (maxLower > minUpper) {
       if (prevDistance !== undefined && (currDistance === undefined || prevDistance < currDistance)) {
         if (prevDistanceUpperBound !== undefined && prevDistanceUpperBound < 0.5) {
-          times[currentLineNumber - 1] = { start: speechStart - speechOffset, end: event.timeStamp - speechOffset };
+          const lastToken = timingTokens[timingTokens.length - 1];
+          lastToken.timings.start = speechStart - speechOffset;
+          lastToken.timings.end = event.timeStamp - speechOffset;
         }
       } else {
         if (currDistanceUpperBound !== undefined && currDistanceUpperBound < 0.5) {
-          times[currentLineNumber] = { start: speechStart - speechOffset, end: event.timeStamp - speechOffset };
-          currentLineNumber++;
+          timingTokens = [...timingTokens, {
+            ...currentToken,
+            timings: {
+              start: speechStart - speechOffset,
+              end: event.timeStamp - speechOffset
+            },
+            type: "TIMING"
+          }];
+          currentTokenNumber++;
         }
       }
     }
@@ -137,13 +155,13 @@
 
 {#if prevLine !== undefined}
   <p>
-    Previous Line ({prevLineNumber}): {prevLine}
+    Previous Line ({prevTokenNumber}): {prevLine}
   </p>
 {/if}
 
 {#if currentLine !== undefined}
   <p>
-    Current Line ({currentLineNumber}): {currentLine}
+    Current Line ({currentTokenNumber}): {currentLine}
   </p>
 {/if}
 
@@ -166,8 +184,8 @@
 </p>
 
 <ol>
-  {#each Object.values(times) as time}
-    <li>{time.start} - {time.end}</li>
+  {#each Object.values(timingTokens) as time}
+    <li>{time.timings.start} - {time.timings.end}</li>
   {/each}
 </ol>
 

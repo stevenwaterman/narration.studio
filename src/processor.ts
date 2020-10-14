@@ -1,15 +1,20 @@
 //@ts-ignore
 import toWav from "audiobuffer-to-wav";
 import download from "downloadjs"
+import { ProcessingToken } from "./tokens";
 
-export async function process(rawTimes: Array<{start: number; end: number}>, data: Blob): Promise<void> {
+export async function process(tokens: ProcessingToken[], data: Blob): Promise<void> {
   let currentTime = 0;
   const times: Array<{when: number; offset: number; duration: number}> = [];
-  rawTimes.forEach(time => {
-    const offset = time.start / 1000;
-    const duration = (time.end - time.start) / 1000;
-    times.push({when: currentTime, offset: offset - 0.5, duration: duration + 0.25});
-    currentTime = currentTime + duration + 0.25;
+  tokens.forEach(token => {
+    if (token.type === "TIMING") {
+      const offset = token.timings.start / 1000;
+      const duration = (token.timings.end - token.timings.start) / 1000;
+      times.push({when: currentTime, offset: offset - 0.5, duration: duration + 0.25});
+      currentTime = currentTime + duration + 0.25;
+    } else if (token.type === "PAUSE") {
+      currentTime += token.delay;
+    }
   })
 
   const sampleRate = 44100;
