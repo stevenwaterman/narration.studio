@@ -52,13 +52,13 @@ const phonemeMap = {
 export function toPronunciation(sentence: string): string {
   const words: string[] = sentence.split(" ").map(word => {
     const lower = word.toLowerCase();
-    const clean = lower.replaceAll(/[^a-z']/g, '');
+    const clean = lower.replace(/[^a-z']/g, '');
     return clean;
   });
   const wordsPronunciation: string[] = words.map(word => {
     if (word in cmu) {
       const pronunciation = cmu[word as keyof typeof cmu] as string;
-      return pronunciation.replaceAll(/[^A-Z ]/g, '');
+      return pronunciation.replace(/[^A-Z ]/g, '');
     } else {
       return "_";
     }

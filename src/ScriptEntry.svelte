@@ -6,7 +6,7 @@
 
   let filtered: string[];
   $: filtered = lines
-    .filter(line => line.trim().replaceAll(/[^a-zA-Z]/g, "").length);
+    .filter(line => line.trim().replace(/[^a-zA-Z]/g, "").length);
 
   export let scriptLines: string[];
   $: scriptLines = filtered;
