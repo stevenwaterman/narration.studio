@@ -9,7 +9,7 @@
 {#await processRawAudio(data)}
   Processing Microphone Audio...
 {:then audio}
-  <Editor tokens={createEditorTokens(tokens, audio)}/>
+  <Editor tokens={createEditorTokens(tokens, audio)} buffer={audio}/>
 {:catch error}
   {error}
 {/await}
