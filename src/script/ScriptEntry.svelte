@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ScriptToken } from "./tokens";
+  import type { ScriptToken } from "../tokens";
 
   let script: string = "";
 
@@ -27,14 +27,11 @@
   ).sort((a,b) => a - b);
 
   let slices: {start: number; end: number}[];
-  $: slices = allLineBoundaries.reduce(
-    (acc: {start: number; end: number}[], elem: number) => {
-      const last = acc[acc.length - 1].end;
-      const content = {start: last, end: elem};
-      return [...acc, content];
-    }
-    , [{start: 0, end: 0}])
-    .filter(slice => slice.end > slice.start);
+  $: slices = allLineBoundaries
+    .reduce((acc: {start: number; end: number}[], elem: number) => 
+      [...acc, {start: acc[acc.length - 1].end, end: elem}], 
+      [{start: 0, end: 0}]
+    ).filter(slice => slice.end > slice.start);
 
   let basicTokens: (ScriptToken | null)[];
   $: basicTokens = slices.map(({start, end}, idx) => {
@@ -53,7 +50,8 @@
         type: "PAUSE",
         idx,
         delay: delays[raw as keyof typeof delays],
-        raw
+        raw,
+        newParagraph: false
       }
     }
   })
@@ -69,6 +67,7 @@
         last.delay = Math.max(last.delay, elem.delay);
         if (last.raw.endsWith("\n") && elem.raw.endsWith("\n")) {
           last.delay = paragraphDelay;
+          last.newParagraph = true;
         }
         last.raw += elem.raw;
         return acc;

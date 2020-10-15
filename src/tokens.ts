@@ -1,16 +1,16 @@
 type BaseToken<TYPE extends string> = {
   type: TYPE;
   idx: number;
+  raw: string;
 };
 
 export type TextToken = BaseToken<"TEXT"> & {
   script: string;
-  raw: string;
 };
 
 export type PauseToken = BaseToken<"PAUSE"> & {
   delay: number;
-  raw: string;
+  newParagraph: boolean;
 };
 
 export type ScriptToken = TextToken | PauseToken;
@@ -23,3 +23,7 @@ export type TimingToken = BaseToken<"TIMING"> & Omit<TextToken, "type"> & {
 };
 
 export type ProcessingToken = TimingToken | PauseToken;
+
+export type AudioToken = BaseToken<"AUDIO"> & {offset: number; duration: number; buffer: AudioBuffer; stop: () => void;};
+
+export type EditorToken = PauseToken | AudioToken;

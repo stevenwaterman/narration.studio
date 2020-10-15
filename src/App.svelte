@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { TextToken, ScriptToken, TimingToken, ProcessingToken, PauseToken } from "./tokens";
 
-  import AudioRecorder from "./AudioRecorder.svelte";
-  import Processing from "./Processing.svelte";
-  import ScriptEntry from "./ScriptEntry.svelte";
+  import AudioRecorder from "./recording/AudioRecorder.svelte";
+  import AudioProcessor from "./editing/AudioProcessor.svelte";
+  import ScriptEntry from "./script/ScriptEntry.svelte";
 
   let tokens: ScriptToken[] = [];
 
@@ -31,5 +31,5 @@
 {:else if data === null}
   <AudioRecorder textTokens={textTokens} bind:timingTokens bind:data/>
 {:else}
-  <Processing tokens={processingTokens} data={data}/>
+  <AudioProcessor tokens={processingTokens} data={data}/>
 {/if}

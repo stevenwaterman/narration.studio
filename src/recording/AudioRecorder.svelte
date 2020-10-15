@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import leven from "fast-levenshtein";
   import { toPronunciation } from "./pronunciation";
-  import type { TextToken, TimingToken } from "./tokens";
+  import type { TextToken, TimingToken } from "../tokens";
 
   export let textTokens: TextToken[];
   export let timingTokens: TimingToken[] = [];
