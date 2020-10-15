@@ -3,7 +3,8 @@
   import type { EditorToken } from "../tokens";
   import { drawWaveform } from "./render";
   import EditorSnippet from "./EditorSnippet.svelte";
-import Timestamps from "./Timestamps.svelte";
+  import Timestamps from "./Timestamps.svelte";
+  import PlayCursor from "./PlayCursor.svelte";
 
   export let tokens: EditorToken[];
   export let buffer: AudioBuffer;
@@ -50,6 +51,12 @@ import Timestamps from "./Timestamps.svelte";
   }
 
   let cursorPosition: number | null;
+
+  function stopOnChange(tokens: EditorToken[]) {
+    stop(tokens);
+  }
+
+  $: stopOnChange(tokens);
 </script>
 
 <style>
@@ -124,6 +131,7 @@ import Timestamps from "./Timestamps.svelte";
           <div class="cursor" style={`left: ${cursorPosition}px`}/>
         {/if}
       </div>
+      <PlayCursor duration={duration} zoom={zoom}/>
     </div>
   </div>
   <div class="spacer"/>

@@ -16,11 +16,13 @@ import { afterUpdate } from "svelte";
   let canvas: HTMLCanvasElement | undefined;
 
   afterUpdate(() => {
-    const ctx = canvas?.getContext("2d");
-    if(ctx) {
-      ctx.fillStyle = "white";
-      ctx.fill();
-      ctx.drawImage(waveform, startPixel, 0, width, 1000, 0, 0, width, 1000);
+    if(canvas) {
+      const ctx = canvas.getContext("2d");
+      if(ctx) {
+        ctx.fillStyle = "white";
+        ctx.fill();
+        ctx.drawImage(waveform, startPixel, 0, width, 1000, 0, 0, width, 1000);
+      }
     }
   })
   

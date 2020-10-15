@@ -2,8 +2,16 @@
 import toWav from "audiobuffer-to-wav";
 import download from "downloadjs"
 import { ProcessingToken, EditorToken, AudioToken } from "../tokens";
+import { writable, Writable } from "svelte/store";
 
 export const sampleRate = 44100;
+let audioContext: AudioContext | null = null;
+export function getAudioContext(): AudioContext {
+  if (!audioContext) {
+    audioContext = new AudioContext({sampleRate});
+  }
+  return audioContext;
+}
 
 export function createEditorTokens(tokens: ProcessingToken[], buffer: AudioBuffer): EditorToken[] {
   return tokens.map(token => {
@@ -23,9 +31,13 @@ export function createEditorTokens(tokens: ProcessingToken[], buffer: AudioBuffe
   });
 }
 
+export const audioStatusStore: Writable<{
+  offset: number
+} | null> = writable(null)
+
 export function play(tokens: EditorToken[], startTime: number = 0): void {
   stop(tokens);
-  const ctx = new AudioContext({sampleRate});
+  const ctx = getAudioContext();
   const currentTime = ctx.currentTime;
   let timeOffset = 0;
   tokens.forEach((token) => {
@@ -34,24 +46,26 @@ export function play(tokens: EditorToken[], startTime: number = 0): void {
     } else {
       const finishTimeOffset = timeOffset + token.duration;
       if(timeOffset >= startTime) {
-        playBuffer(ctx, currentTime + timeOffset, token);
+        playBuffer(ctx, currentTime + timeOffset - startTime, token);
       } else if (finishTimeOffset > startTime) {
         const additionalOffset = startTime - timeOffset;
-        playBuffer(ctx, currentTime, token, additionalOffset);
+        playBuffer(ctx, currentTime + timeOffset, token, additionalOffset);
       }
       timeOffset = finishTimeOffset;
     }
   });
+  audioStatusStore.set({offset: startTime});
 }
 
 export function stop(tokens: EditorToken[]): void {
   tokens.forEach(token => {
     if (token.type === "AUDIO") token.stop();
   });
+  audioStatusStore.set(null);
 }
 
 export async function processRawAudio(audio: Blob): Promise<AudioBuffer> {
-  const ctx = new AudioContext({sampleRate});
+  const ctx = getAudioContext();
   const arrayBuffer: ArrayBuffer = await audio.arrayBuffer();
   return await ctx.decodeAudioData(arrayBuffer);
 }
@@ -60,7 +74,7 @@ function playBuffer(ctx: BaseAudioContext, when: number, token: AudioToken, offs
   const source = ctx.createBufferSource();
   source.buffer = token.buffer;
   source.connect(ctx.destination);
-  source.start(when, token.offset + offset, token.duration);
+  source.start(when, token.offset + offset, token.duration - offset);
   token.stop = () => source.stop();
 }
 
