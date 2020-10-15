@@ -5,12 +5,12 @@
   export let token: PauseToken;
 
   let width: number;
-  $: width = token.delay * zoom;
+  $: width = token.duration * zoom;
 
-  let dragStart: {mouse: number, delay: number} | null = null;
+  let dragStart: {mouse: number, duration: number} | null = null;
 
   function startDrag(event: MouseEvent) {
-    dragStart = {mouse: event.screenX, delay: token.delay};
+    dragStart = {mouse: event.screenX, duration: token.duration};
   }
 
   function endDrag(event: MouseEvent) {
@@ -23,8 +23,8 @@
     const dragEnd = event.screenX;
     const draggedPixels = dragEnd - dragStart.mouse;
     const draggedSeconds = draggedPixels / zoom;
-    const newDelay = dragStart.delay + draggedSeconds;
-    token.delay = Math.max(0.1, newDelay);
+    const newDelay = dragStart.duration + draggedSeconds;
+    token.duration = Math.max(0.1, newDelay);
   }
 </script>
 
@@ -42,5 +42,5 @@
 </style>
 
 <div style={`width: ${width}px;`} on:mousedown|preventDefault={startDrag} on:mouseup|preventDefault={endDrag} on:mouseout={endDrag} on:mousemove={drag}>
-  {token.delay.toFixed(2)}s
+  {token.duration.toFixed(2)}s
 </div> 

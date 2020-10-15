@@ -49,7 +49,7 @@
       return {
         type: "PAUSE",
         idx,
-        delay: delays[raw as keyof typeof delays],
+        duration: delays[raw as keyof typeof delays],
         raw,
         newParagraph: false
       }
@@ -64,9 +64,9 @@
     if (acc.length) {
       const last = acc[acc.length - 1];
       if (elem.type === "PAUSE" && last.type === "PAUSE") {
-        last.delay = Math.max(last.delay, elem.delay);
+        last.duration = Math.max(last.duration, elem.duration);
         if (last.raw.endsWith("\n") && elem.raw.endsWith("\n")) {
-          last.delay = paragraphDelay;
+          last.duration = paragraphDelay;
           last.newParagraph = true;
         }
         last.raw += elem.raw;
@@ -108,7 +108,7 @@
     {#if token.type === "TEXT"}
       <li>{token.script}</li>
     {:else if token.type === "PAUSE"}
-      <li>&lt;{token.delay}s pause&gt;</li>
+      <li>&lt;{token.duration}s pause&gt;</li>
     {/if}
   {/each}
 </ol>

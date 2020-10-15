@@ -9,7 +9,7 @@ export type TextToken = BaseToken<"TEXT"> & {
 };
 
 export type PauseToken = BaseToken<"PAUSE"> & {
-  delay: number;
+  duration: number;
   newParagraph: boolean;
 };
 

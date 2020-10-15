@@ -82,9 +82,6 @@ function initVertexBuffers(gl: WebGL2RenderingContext, program: WebGLProgram, ve
     const a_Position = gl.getAttribLocation(program, 'a_Position');
     gl.enableVertexAttribArray(a_Position);
     gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
-
-    // const u_FragColor = gl.getUniformLocation(program, 'u_FragColor');
-    // gl.uniform4fv(u_FragColor, [1.0, 1.0, 1.0, 1.0]);
 }
 
 function makeShader(gl: WebGL2RenderingContext, src: string, type: number) {
