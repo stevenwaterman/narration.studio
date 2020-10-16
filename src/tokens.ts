@@ -27,3 +27,7 @@ export type ProcessingToken = TimingToken | PauseToken;
 export type AudioToken = BaseToken<"AUDIO"> & {offset: number; duration: number; buffer: AudioBuffer; stop: () => void;};
 
 export type EditorToken = PauseToken | AudioToken;
+
+export type WaveformToken = BaseToken<"WAVE"> & {start: number; duration: number;};
+
+export type DrawToken = PauseToken | WaveformToken;

@@ -3,7 +3,7 @@
   import { audioStatusStore } from "./processor";
 
   export let duration: number;
-  export let zoom: number;
+  export let pixelsPerSecond: number;
 
   function traverse(
     node: Element,
@@ -14,8 +14,8 @@
     return {
       duration: transTime,
       tick: (t: number) => {
-        const startPx: number = offset * zoom;
-        const endPx: number = duration * zoom;
+        const startPx: number = offset * pixelsPerSecond;
+        const endPx: number = duration * pixelsPerSecond;
         const transPx: number = endPx - startPx;
         const x: number = startPx + t * transPx;
         style.left = `${x}px`;

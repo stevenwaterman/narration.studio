@@ -5,22 +5,31 @@ import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import livereload from "rollup-plugin-livereload";
 import { terser } from "rollup-plugin-terser";
-import progress from 'rollup-plugin-progress';
+import progress from "rollup-plugin-progress";
+import workerLoader from "rollup-plugin-web-worker-loader";
 
 const production = !process.env.ROLLUP_WATCH;
 
 export default {
   input: "src/main.ts",
   output: {
-    sourcemap: true,
+    sourcemap: false,
     format: "iife",
     name: "app",
     file: "public/build/bundle.js"
   },
   plugins: [
     progress(),
+    
+    resolve({
+      browser: true,
+      extensions: [".svelte", ".ts", ".js"],
+      dedupe: ["svelte"]
+    }),
+    commonjs(),
+
     typeCheck(),
-    typescript({ sourceMap: !production }),
+    typescript({ sourceMap: false }),
     svelte({
       preprocess: sveltePreprocess(),
       dev: !production,
@@ -29,12 +38,7 @@ export default {
       }
     }),
 
-    resolve({
-      browser: true,
-      extensions: [".svelte", ".ts", ".js"],
-      dedupe: ["svelte"]
-    }),
-    commonjs(),
+    workerLoader(),
 
     !production && serve(),
     !production && livereload("public"),

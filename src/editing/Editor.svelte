@@ -1,47 +1,15 @@
 <script lang="ts">
   import { play, sampleRate, save, stop } from "./processor";
-  import type { EditorToken } from "../tokens";
-  import { drawWaveform } from "./render";
-  import EditorSnippet from "./EditorSnippet.svelte";
+  import type { AudioToken, DrawToken, EditorToken } from "../tokens";
+  import EditorSnippet from "../../tmp/EditorSnippet.svelte";
   import Timestamps from "./Timestamps.svelte";
   import PlayCursor from "./PlayCursor.svelte";
+  import RenderController from "./timeline/renderController";
 
   export let tokens: EditorToken[];
   export let buffer: AudioBuffer;
 
-  function drawBaseCanvas(buffer: AudioBuffer): ImageBitmap {
-    const firstChannel = buffer.getChannelData(0);
-    const secondChannel = buffer.getChannelData(1);
-
-    const samples = firstChannel.length;
-    const waveform: {min: number; max: number;}[] = [];
-    for(let i = 0; i < samples; i++) {
-      const pixel = Math.floor(i / 100);
-      const firstSample = firstChannel[i];
-      const secondSample = secondChannel[i];
-      
-      const {min, max} = waveform[pixel] || {min: 1, max: -1};
-      waveform[pixel] = {
-        min: Math.min(min, firstSample, secondSample),
-        max: Math.max(max, firstSample, secondSample)
-      }
-    }
-
-    const max = Math.max(...waveform.flatMap(({min, max}) => [Math.abs(min), max]))
-    const amplification = 1 / max;
-
-    const amplified = waveform.map(({min, max}) => ({
-      min: min * amplification ,
-      max: max * amplification
-    }));
-
-    return drawWaveform(amplified, 1000);
-  }
-
-  let waveform: ImageBitmap;
-  $: waveform = drawBaseCanvas(buffer);
-
-  let zoom: number = 441;
+  let pixelsPerSecond: number = 200;
 
   let duration: number;
   $: duration = tokens.map(t => t.duration).reduce((a,b) => a + b, 0);
@@ -57,6 +25,26 @@
   }
 
   $: stopOnChange(tokens);
+
+  let canvas: HTMLCanvasElement | undefined;
+  let offscreen: OffscreenCanvas | undefined;
+  $: offscreen = canvas ? canvas.transferControlToOffscreen() : undefined;
+  let controller: RenderController | undefined;
+  $: controller = offscreen ? new RenderController(offscreen, buffer) : undefined;
+
+  let drawTokens: DrawToken[];
+  $: drawTokens = tokens.map(token => {
+    if(token.type === "PAUSE") return token;
+    return {
+      type: "WAVE",
+      start: token.offset,
+      duration: token.duration,
+      raw: token.raw,
+      idx: token.idx
+    }
+  })
+
+  $: controller && controller.update(drawTokens, pixelsPerSecond);
 </script>
 
 <style>
@@ -117,13 +105,17 @@
 <button on:click={() => save(tokens)}>Save</button>
 
 <div class="container">
+  <canvas height={300} width={1000} bind:this={canvas}/>
+</div>
+
+<!-- <div class="container">
   <div class="spacer"/>
   <div class="timeline">
-    <Timestamps duration={duration} zoom={zoom} on:play={e => startAudio(e.detail)} bind:cursorPosition/>
+    <Timestamps duration={duration} pixelsPerSecond={pixelsPerSecond} on:play={e => startAudio(e.detail)} bind:cursorPosition/>
     <div class="overlays">
       <div class="snippets">
         {#each tokens as token (token.idx)}
-          <EditorSnippet bind:token waveform={waveform} zoom={zoom}/>
+          <EditorSnippet bind:token waveform={waveform} pixelsPerSecond={pixelsPerSecond}/>
         {/each}
       </div>
       <div class="cursorContainer">
@@ -131,8 +123,8 @@
           <div class="cursor" style={`left: ${cursorPosition}px`}/>
         {/if}
       </div>
-      <PlayCursor duration={duration} zoom={zoom}/>
+      <PlayCursor duration={duration} pixelsPerSecond={pixelsPerSecond}/>
     </div>
   </div>
   <div class="spacer"/>
-</div>
+</div> -->

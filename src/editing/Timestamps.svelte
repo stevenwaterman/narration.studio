@@ -2,10 +2,10 @@
   import { createEventDispatcher } from "svelte";
 
   export let duration: number;
-  export let zoom: number;
+  export let pixelsPerSecond: number;
 
   let timelineWidth: number;
-  $: timelineWidth = duration * zoom;
+  $: timelineWidth = duration * pixelsPerSecond;
 
   let timestampCount: number;
   $: timestampCount = Math.floor(timelineWidth / 200);
@@ -18,8 +18,8 @@
     .fill(null)
     .map((_, idx) => timestampPeriod * idx)
     .map(ts => ({
-      left: ts * zoom,
-      mins: (ts / 60).toFixed(0).padStart(2, "0"),
+      left: ts * pixelsPerSecond,
+      mins: Math.floor(ts / 60).toFixed().padStart(2, "0"),
       secs: (ts % 60).toFixed(3).padStart(6, "0")
     }));
 
@@ -45,7 +45,7 @@
 
   function mouseClick(event: MouseEvent) {
     const x = event.offsetX;
-    const seconds = x / zoom;
+    const seconds = x / pixelsPerSecond;
     dispatch("play", seconds);
   }
 </script>
