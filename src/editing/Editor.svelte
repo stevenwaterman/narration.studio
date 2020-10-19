@@ -38,6 +38,30 @@
   let pixelsPerSecond: number = 200;
 
   $: canvas && controller && controller.update(drawTokens, scroll, pixelsPerSecond, canvas.clientWidth, canvas.clientHeight);
+
+  let dragging: {
+    startMouse: number;
+    startScroll: number;
+  } | null;
+  function startDrag(event: MouseEvent) {
+    dragging = {startMouse: event.offsetX, startScroll: scroll};
+  }
+  function endDrag(event: MouseEvent) {
+    dragging = null;
+  }
+  function drag(event: MouseEvent) {
+    if(dragging) {
+      const x = event.offsetX;
+      const dragPx = dragging.startMouse - x;
+      const dragSec = dragPx / pixelsPerSecond;
+      scroll = dragging.startScroll + dragSec;
+    }
+  }
+  function onScroll(event: WheelEvent) {
+    const amount = event.deltaY;
+    if(amount < 0) pixelsPerSecond *= 1.1;
+    else pixelsPerSecond /= 1.1;
+  }
 </script>
 
 <style>
@@ -57,14 +81,12 @@
 <button on:click={() => stop(tokens)}>Stop</button>
 <button on:click={() => save(tokens)}>Save</button>
 
-<div class="container">
+<div class="container"
+ on:mousedown|preventDefault={startDrag} 
+ on:mouseup|preventDefault={endDrag}
+ on:mouseout|preventDefault={endDrag} 
+ on:mousemove={drag}
+ on:wheel|preventDefault={onScroll}
+>
   <canvas bind:this={canvas}/>
 </div>
-
-<input type="range" min="0" max="100" step="0.001" bind:value={scroll}/>
-{scroll}
-
-<br/>
-
-<input type="range" min="10" max="1000" step="10" bind:value={pixelsPerSecond}/>
-{pixelsPerSecond}

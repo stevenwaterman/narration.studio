@@ -10,7 +10,7 @@ type Message = {
   data: RenderMessage
 };
 
-const renderPixelSize = Math.round(sampleRate / 1000);
+const renderPixelSize = 1;
 
 self.addEventListener('message', ({data}: Message) => {
   if (data.type === "create") {
@@ -20,47 +20,43 @@ self.addEventListener('message', ({data}: Message) => {
   }
 });
 
-function setup({ canvas, channel0, channel1 }: RenderMessageCreate) {
+function setup({ canvas, channel }: RenderMessageCreate) {
   offscreen = canvas;
   gl = canvas.getContext("webgl2", {preserveDrawingBuffer: true}) as WebGL2RenderingContext;
   init(gl);
 
-  vertices = preprocess(channel0, channel1);
+  vertices = preprocess(channel);
   gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 }
 
-function preprocess(channel0: Float32Array, channel1: Float32Array): Float32Array {
-  const outputLength = Math.ceil(channel0.length / renderPixelSize);
-  const output = new Float32Array(outputLength * 4);
+function preprocess(channel: Float32Array): Float32Array {
+  const vertices = channel.length / renderPixelSize;
+  const outputLength = vertices * 2;
+  const output = new Float32Array(outputLength);
 
-  for(let i = 0; i < outputLength; i++) {
-    let min = 1;
-    let max = -1;
+  for(let i = 0; i < vertices; i++) {
+    let sum = 0;
+    let count = 0;
 
     for(let j = 0; j < renderPixelSize; j++) {
       const idx = i * renderPixelSize + j;
-      if (idx < channel0.length) {
-        const val0 = channel0[idx];
-        const val1 = channel1[idx];
-        min = Math.min(min, val0, val1);
-        max = Math.max(max, val0, val1);
+      if (idx < channel.length) {
+        sum += channel[idx];
+        count++;
       }
     }
 
     const xSamples = i * renderPixelSize;
     const xSeconds = xSamples / sampleRate;
 
-    const idx = i*4;
+    const idx = i*2;
     output[idx] = xSeconds;
-    output[idx + 1] = min;
-    output[idx + 2] = xSeconds;
-    output[idx + 3] = max;
+    output[idx + 1] = sum / count;
   }
 
   let peak = 0;
   for(let i = 1; i < output.length; i += 2) peak = Math.max(peak, Math.abs(output[i]));
   for(let i = 1; i < output.length; i += 2) output[i] /= peak;
-  
   return output;
 }
 
@@ -74,18 +70,15 @@ function drawWaveform({tokens, pixelsPerSecond, scroll, width, height}: RenderMe
 
   let timecode = -scroll;
   for(const token of tokens) {
-    if(token.type === "PAUSE") {
-      timecode += token.duration;
-
-    } else {
+    if(token.type === "WAVE") {
       drawSection(timecode, token.start, token.duration, pixelsPerSecond);
-      timecode += token.duration;
     }
+    timecode += token.duration;
   }
 }
 
 function drawSection(drawAtTime: number, tokenOffset: number, tokenDuration: number, pixelsPerSecond: number) {
-  const lineCount = vertices.length / 4;
+  const lineCount = vertices.length / 2;
   const sampleCount = lineCount * renderPixelSize;
   const totalDuration = sampleCount / sampleRate;
 
@@ -101,16 +94,16 @@ function drawSection(drawAtTime: number, tokenOffset: number, tokenDuration: num
   const scaleLoc = gl.getUniformLocation(program, "u_scale");
   gl.uniform4fv(scaleLoc, [scale, 1, 1, 1]);
 
-  const startLine = Math.round(tokenOffset * sampleRate / renderPixelSize);
+  const startVertex = Math.round(tokenOffset * sampleRate / renderPixelSize);
   
-  const naturalTime = vertices[startLine * 4];
+  const naturalTime = vertices[startVertex * 2];
   const offset = drawAtTime - naturalTime;
 
   const offsetLoc = gl.getUniformLocation(program, "u_offset");
   gl.uniform4fv(offsetLoc, [offset, 0, 0, 0]);
   
-  const vertexCount = Math.round(tokenDuration * sampleRate / renderPixelSize) * 2;
-  gl.drawArrays(gl.LINES, startLine * 2, vertexCount);
+  const vertexCount = Math.round(tokenDuration * sampleRate / renderPixelSize);
+  gl.drawArrays(gl.LINE_STRIP, startVertex, vertexCount);
 }
 
 const vsSource = `

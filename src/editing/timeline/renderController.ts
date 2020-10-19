@@ -5,8 +5,7 @@ import RenderWorker from "web-worker:./render.ts";
 export type RenderMessageCreate = {
   type: "create",
   canvas: OffscreenCanvas,
-  channel0: Float32Array,
-  channel1: Float32Array
+  channel: Float32Array,
 }
 
 export type RenderMessageDraw = {
@@ -24,11 +23,17 @@ const worker: Worker = new RenderWorker();
 
 class RenderController {
   constructor(canvas: OffscreenCanvas, buffer: AudioBuffer) {
+    const data: Float32Array = new Float32Array(buffer.getChannelData(0).length);
+    for(let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const channelData = buffer.getChannelData(channel);
+      for(let i = 0; i < data.length; i++) {
+        data[i] += channelData[i];
+      }
+    }
     const msg: RenderMessageCreate = { 
       type: "create", 
       canvas, 
-      channel0: buffer.getChannelData(0), 
-      channel1: buffer.getChannelData(1) 
+      channel: data
     };
 
     worker.postMessage(msg, [canvas]);
