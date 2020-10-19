@@ -1,24 +1,14 @@
 <script lang="ts">
-  import { play, sampleRate, save, stop } from "./processor";
-  import type { AudioToken, DrawToken, EditorToken } from "../tokens";
-  import EditorSnippet from "../../tmp/EditorSnippet.svelte";
-  import Timestamps from "./Timestamps.svelte";
-  import PlayCursor from "./PlayCursor.svelte";
+  import { play, save, stop } from "./processor";
+  import type { DrawToken, EditorToken } from "../tokens";
   import RenderController from "./timeline/renderController";
 
   export let tokens: EditorToken[];
   export let buffer: AudioBuffer;
 
-  let pixelsPerSecond: number = 200;
-
-  let duration: number;
-  $: duration = tokens.map(t => t.duration).reduce((a,b) => a + b, 0);
-
   function startAudio(startTime?: number) {
     play(tokens, startTime || 0);
   }
-
-  let cursorPosition: number | null;
 
   function stopOnChange(tokens: EditorToken[]) {
     stop(tokens);
@@ -42,9 +32,12 @@
       raw: token.raw,
       idx: token.idx
     }
-  })
+  });
 
-  $: controller && controller.update(drawTokens, pixelsPerSecond);
+  let scroll: number = 0;
+  let pixelsPerSecond: number = 200;
+
+  $: canvas && controller && controller.update(drawTokens, scroll, pixelsPerSecond, canvas.clientWidth, canvas.clientHeight);
 </script>
 
 <style>
@@ -52,51 +45,11 @@
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
-    overflow-x: scroll;
     height: 300px;
   }
 
-  .timeline {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-  }
-
-  .snippets {
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-start;
-    height: 100%;
-  }
-
-  .cursorContainer {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    pointer-events: none;
-  }
-
-  .spacer {
-    width: 100vw;
-    flex-grow: 0;
-    flex-shrink: 0;
-  }
-
-  .overlays {
-    position: relative;
-    flex-shrink: 1;
-    flex-grow: 1;
-    min-height: 0;
-  }
-
-  .cursor {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    background-color: black;
-    width: 2px;
+  canvas {
+    width: 100%;
   }
 </style>
 
@@ -105,26 +58,13 @@
 <button on:click={() => save(tokens)}>Save</button>
 
 <div class="container">
-  <canvas height={300} width={1000} bind:this={canvas}/>
+  <canvas bind:this={canvas}/>
 </div>
 
-<!-- <div class="container">
-  <div class="spacer"/>
-  <div class="timeline">
-    <Timestamps duration={duration} pixelsPerSecond={pixelsPerSecond} on:play={e => startAudio(e.detail)} bind:cursorPosition/>
-    <div class="overlays">
-      <div class="snippets">
-        {#each tokens as token (token.idx)}
-          <EditorSnippet bind:token waveform={waveform} pixelsPerSecond={pixelsPerSecond}/>
-        {/each}
-      </div>
-      <div class="cursorContainer">
-        {#if cursorPosition !== null}
-          <div class="cursor" style={`left: ${cursorPosition}px`}/>
-        {/if}
-      </div>
-      <PlayCursor duration={duration} pixelsPerSecond={pixelsPerSecond}/>
-    </div>
-  </div>
-  <div class="spacer"/>
-</div> -->
+<input type="range" min="0" max="100" step="0.001" bind:value={scroll}/>
+{scroll}
+
+<br/>
+
+<input type="range" min="10" max="1000" step="10" bind:value={pixelsPerSecond}/>
+{pixelsPerSecond}
