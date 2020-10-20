@@ -81,11 +81,11 @@ import { play } from "../processor";
     position: absolute;
     top: 0;
     bottom: 0;
+    left: 0;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
-    transform: translateX(-50%);
     pointer-events: none;
   }
 
@@ -99,19 +99,20 @@ import { play } from "../processor";
     position: absolute;
     top: 30px;
     bottom: 0;
+    left: 0;
     width: 1px;
     background-color: gray;
-    z-index: 1;
+    z-index: 2;
   }
 </style>
 
 {#if cursorPosition !== null}
-<div class="cursor" style={`left: ${cursorPosition}px`}/>
+<div class="cursor" style={`transform: translateX(calc(${cursorPosition}px - 50%))`}/>
 {/if}
 
 <div class="timestamps" bind:clientWidth on:mouseover={mouseEnter} on:mouseout={mouseLeave} on:mousemove={mouseMove} on:click={mouseClick}>
   {#each timestamps as {left, mins, secs} (left)}
-    <div class="column" style={`left: ${left}px`} transition:fade>
+    <div class="column" style={`transform: translateX(calc(${left}px - 50%))`} transition:fade>
       <div class="timestamp">{mins}:{secs}</div>
       <div class="marker"/>
     </div>

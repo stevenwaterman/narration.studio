@@ -108,7 +108,11 @@ function drawSection(drawAtTime: number, tokenOffset: number, tokenDuration: num
   gl.uniform4fv(offsetLoc, [offset, 0, 0, 0]);
   
   const vertexCount = Math.round(tokenDuration * sampleRate / renderPixelSize);
-  gl.drawArrays(gl.LINE_STRIP, Math.max(0, startVertex - 1), Math.min(lineCount, vertexCount + 2));
+
+  const start = Math.max(0, startVertex - 1);
+  const end = Math.min(lineCount, start + vertexCount + 2);
+  const count = end - start;
+  gl.drawArrays(gl.LINE_STRIP, start, count);
 }
 
 const vsSource = `

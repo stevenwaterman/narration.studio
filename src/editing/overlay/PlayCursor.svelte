@@ -17,7 +17,7 @@
     const timeFrac = timeDelta / animationDuration;
     scroll = offset + timeFrac * animationDuration - timelineWidthSecs / 2;
 
-    if(timeDelta < animationDuration) requestAnimationFrame(animate);
+    if(!hidden && timeDelta < animationDuration) requestAnimationFrame(animate);
     else {
       startTime = undefined;
       hidden = true;
@@ -45,7 +45,7 @@
     transform: translateX(-50%);
     background-color: red;
     pointer-events: none;
-    z-index: 1;
+    z-index: 2;
   }
 </style>
 
