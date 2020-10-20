@@ -1,5 +1,5 @@
 
-import { AudioToken, DrawToken } from "../../tokens";
+import { DrawToken } from "../../tokens";
 import RenderWorker from "web-worker:./render.ts";
 
 export type RenderMessageCreate = {

@@ -71,7 +71,13 @@ function drawWaveform({tokens, pixelsPerSecond, scroll, width, height}: RenderMe
   let timecode = -scroll;
   for(const token of tokens) {
     if(token.type === "WAVE") {
-      drawSection(timecode, token.start, token.duration, pixelsPerSecond);
+      const drawAtTime = Math.max(0, timecode);
+      const addedCrop = drawAtTime - timecode;
+      const tokenOffset = token.start + addedCrop;
+      const croppedDuration = token.duration - addedCrop;
+      const widthSecs = width / pixelsPerSecond;
+      const tokenDuration = Math.min(widthSecs - drawAtTime, croppedDuration);
+      drawSection(drawAtTime, tokenOffset, tokenDuration, pixelsPerSecond);
     }
     timecode += token.duration;
   }
@@ -95,7 +101,6 @@ function drawSection(drawAtTime: number, tokenOffset: number, tokenDuration: num
   gl.uniform4fv(scaleLoc, [scale, 1, 1, 1]);
 
   const startVertex = Math.round(tokenOffset * sampleRate / renderPixelSize);
-  
   const naturalTime = vertices[startVertex * 2];
   const offset = drawAtTime - naturalTime;
 
@@ -103,7 +108,7 @@ function drawSection(drawAtTime: number, tokenOffset: number, tokenDuration: num
   gl.uniform4fv(offsetLoc, [offset, 0, 0, 0]);
   
   const vertexCount = Math.round(tokenDuration * sampleRate / renderPixelSize);
-  gl.drawArrays(gl.LINE_STRIP, startVertex, vertexCount);
+  gl.drawArrays(gl.LINE_STRIP, Math.max(0, startVertex - 1), Math.min(lineCount, vertexCount + 2));
 }
 
 const vsSource = `

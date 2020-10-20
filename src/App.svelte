@@ -25,6 +25,12 @@
   $: processingTokens = [...timingTokens, ...pauseTokens].sort((a,b) => a.idx - b.idx);
 </script>
 
+<style>
+  :global(body) {
+    overflow: hidden;
+  }
+</style>
+
 {#if !submitted}
   <ScriptEntry bind:tokens/>
   <button on:click={submit}>Submit</button>

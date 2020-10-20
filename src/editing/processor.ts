@@ -3,6 +3,7 @@ import toWav from "audiobuffer-to-wav";
 import download from "downloadjs"
 import { ProcessingToken, EditorToken, AudioToken } from "../tokens";
 import { writable, Writable } from "svelte/store";
+import { claim_text } from "svelte/internal";
 
 export const sampleRate = 44100;
 let audioContext: AudioContext | null = null;
@@ -33,7 +34,12 @@ export function createEditorTokens(tokens: ProcessingToken[], buffer: AudioBuffe
 
 export const audioStatusStore: Writable<{
   offset: number
-} | null> = writable(null)
+} | null> = writable(null);
+
+let currentTimeOffset: number = 0;
+export function getCurrentTime(): number {
+  return getAudioContext().currentTime - currentTimeOffset;
+}
 
 export function play(tokens: EditorToken[], startTime: number = 0): void {
   stop(tokens);
@@ -54,6 +60,7 @@ export function play(tokens: EditorToken[], startTime: number = 0): void {
       timeOffset = finishTimeOffset;
     }
   });
+  currentTimeOffset = currentTime;
   audioStatusStore.set({offset: startTime});
 }
 
