@@ -4,14 +4,14 @@
   let script: string = "";
 
   const delays = {
-    "\n": 0.25,
-    ".": 0.25,
-    ";": 0.1,
-    "!": 0.25,
-    "?": 0.25,
-    "-": 0.1
+    "\n": 0.4,
+    ".": 0.4,
+    ";": 0.2,
+    "!": 0.4,
+    "?": 0.4,
+    "-": 0.2
   };
-  const paragraphDelay = 0.7;
+  const paragraphDelay = 1;
 
   let matches: RegExpMatchArray[];
   $: matches = Array.from(script.trim().matchAll(/[\n.;!?-]/g));

@@ -77,7 +77,9 @@ function drawWaveform({tokens, pixelsPerSecond, scroll, width, height}: RenderMe
       const croppedDuration = token.duration - addedCrop;
       const widthSecs = width / pixelsPerSecond;
       const tokenDuration = Math.min(widthSecs - drawAtTime, croppedDuration);
-      drawSection(drawAtTime, tokenOffset, tokenDuration, pixelsPerSecond);
+      if (tokenDuration > 0) {
+        drawSection(drawAtTime, tokenOffset, tokenDuration, pixelsPerSecond);
+      }
     }
     timecode += token.duration;
   }

@@ -91,7 +91,7 @@
     }
     if (deltaX) setScroll(scroll - deltaX / pixelsPerSecond)
     
-    const newMouseSecs = offsetX / pixelsPerSecond;
+    const newMouseSecs = screenX / pixelsPerSecond;
     const requiredScrolling = oldMouseSecs - newMouseSecs;
     setScroll(scroll + requiredScrolling);
   }

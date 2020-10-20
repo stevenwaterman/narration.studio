@@ -32,12 +32,15 @@
   div {
     flex-grow: 0;
     flex-shrink: 0;
-    border: 1px solid black;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
     cursor: e-resize;
     background-color: white;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 </style>
 
