@@ -9,7 +9,7 @@
   export let cursorPositionSeconds: number | null;
   
   let playing: boolean;
-  $: playing = $audioStatusStore !== null;
+  $: playing = $audioStatusStore.type === "PLAYING";
 
   let playingCursorPositionSeconds: number | null;
   $: playingCursorPositionSeconds = playing ? scroll + timelineWidthSecs / 2 : null;

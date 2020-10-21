@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { play, sampleRate, save, stop } from "./processor";
+  import { play, sampleRate, save, stop, togglePause } from "./processor";
   import type { DrawToken, EditorToken } from "../tokens";
   import RenderController from "./canvas/renderController";
   import Timestamps from "./overlay/Timestamps.svelte";
@@ -13,10 +13,6 @@ import ScriptDisplay from "./ScriptDisplay.svelte";
 
   let audioDuration: number;
   $: audioDuration = buffer.length / sampleRate;
-
-  function startAudio(startTime?: number) {
-    play(tokens, startTime || 0);
-  }
 
   function stopOnChange(tokens: EditorToken[]) {
     stop(tokens);
@@ -85,6 +81,12 @@ import ScriptDisplay from "./ScriptDisplay.svelte";
   }
 
   let cursorPositionSeconds: number | null;
+
+  function keypress(event: KeyboardEvent) {
+    if(event.key === "Space") {
+      togglePause(tokens);
+    }
+  }
 </script>
 
 <style>
@@ -116,7 +118,7 @@ import ScriptDisplay from "./ScriptDisplay.svelte";
   }
 </style>
 
-<button on:click={() => startAudio()}>Start</button>
+<button on:click={() => togglePause(tokens)}>Play / Pause</button>
 <button on:click={() => stop(tokens)}>Stop</button>
 <button on:click={() => save(tokens)}>Save</button>
 
@@ -133,12 +135,13 @@ import ScriptDisplay from "./ScriptDisplay.svelte";
   on:mouseup|preventDefault={dragEnd}
   on:mouseout|preventDefault|self={dragEnd}
   on:wheel|preventDefault={onWheel}
-  on:contextmenu|preventDefault={() => {}}
+  on:contextmenu|preventDefault
   >
-    <PlayCursor bind:scroll duration={duration} timelineWidthSecs={timelineWidthSecs}/>
-    <Timestamps bind:cursorPositionSeconds scroll={scroll} pixelsPerSecond={pixelsPerSecond} duration={duration} on:play={e => startAudio(e.detail)}/>
-    <TokensOverlay scroll={scroll} pixelsPerSecond={pixelsPerSecond} bind:tokens audioDuration={audioDuration}/>
+    <PlayCursor bind:scroll {duration} {timelineWidthSecs} {pixelsPerSecond}/>
+    <Timestamps bind:cursorPositionSeconds {scroll} {pixelsPerSecond} {duration} on:play={e => play(tokens, e.detail)}/>
+    <TokensOverlay bind:tokens {scroll} {pixelsPerSecond}  {audioDuration}/>
     <canvas bind:this={canvas} bind:clientWidth={timelineWidth} />
   </div>
-  <ScriptDisplay tokens={drawTokens} scroll={scroll} timelineWidthSecs={timelineWidthSecs} cursorPositionSeconds={cursorPositionSeconds}/>
+  <ScriptDisplay tokens={drawTokens} {scroll} {timelineWidthSecs} {cursorPositionSeconds}/>
 </div>
+<svelte:window on:keypress={keypress}/>

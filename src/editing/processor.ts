@@ -2,7 +2,7 @@
 import toWav from "audiobuffer-to-wav";
 import download from "downloadjs"
 import { ProcessingToken, EditorToken, AudioToken } from "../tokens";
-import { writable, Writable } from "svelte/store";
+import { writable, Writable, Readable } from "svelte/store";
 import { claim_text } from "svelte/internal";
 
 export const sampleRate = 44100;
@@ -32,13 +32,33 @@ export function createEditorTokens(tokens: ProcessingToken[], buffer: AudioBuffe
   });
 }
 
-export const audioStatusStore: Writable<{
-  offset: number
-} | null> = writable(null);
+type PlayingState = {
+  type: "PLAYING";
+  offset: number;
+  ctxStartTime: number;
+}
+type PausedState = {
+  type: "PAUSED";
+  offset: number;
+}
+type StoppedState = {
+  type: "STOPPED";
+}
+type AudioState = PlayingState | PausedState | StoppedState;
 
-let currentTimeOffset: number = 0;
+const internalAudioStatusStore: Writable<AudioState> = writable({type: "STOPPED"});
+export const audioStatusStore: Readable<AudioState> = internalAudioStatusStore;
+
+let audioState: AudioState; 
+audioStatusStore.subscribe(state => {
+  audioState = state;
+})
+
 export function getCurrentTime(): number {
-  return getAudioContext().currentTime - currentTimeOffset;
+  if (audioState.type === "PLAYING") {
+    return getAudioContext().currentTime - audioState.ctxStartTime;
+  }
+  return -1;
 }
 
 export function play(tokens: EditorToken[], startTime: number = 0): void {
@@ -60,15 +80,32 @@ export function play(tokens: EditorToken[], startTime: number = 0): void {
       timeOffset = finishTimeOffset;
     }
   });
-  currentTimeOffset = currentTime;
-  audioStatusStore.set({offset: startTime});
+  internalAudioStatusStore.set({type: "PLAYING", offset: startTime, ctxStartTime: currentTime});
 }
 
 export function stop(tokens: EditorToken[]): void {
   tokens.forEach(token => {
     if (token.type === "AUDIO") token.stop();
   });
-  audioStatusStore.set(null);
+  internalAudioStatusStore.set({type: "STOPPED"});
+}
+
+export function pause(tokens: EditorToken[]): void {
+  tokens.forEach(token => {
+    if (token.type === "AUDIO") token.stop();
+  });
+  const oldOffset = audioState.type === "PLAYING" ? audioState.offset : 0;
+  internalAudioStatusStore.set({type: "PAUSED", offset: oldOffset + getCurrentTime()});
+}
+
+export function togglePause(tokens: EditorToken[]): void {
+  if(audioState.type === "STOPPED") {
+    play(tokens);
+  } else if(audioState.type === "PAUSED") {
+    play(tokens, audioState.offset);
+  } else if(audioState.type === "PLAYING") {
+    pause(tokens);
+  }
 }
 
 export async function processRawAudio(audio: Blob): Promise<AudioBuffer> {

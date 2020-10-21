@@ -4,6 +4,7 @@
   export let duration: number;
   export let scroll: number;
   export let timelineWidthSecs: number;
+  export let pixelsPerSecond: number;
 
   let offset: number = 0;
   let startTime: number | undefined;
@@ -16,25 +17,31 @@
     const timeFrac = timeDelta / animationDuration;
     scroll = offset + timeFrac * animationDuration - timelineWidthSecs / 2;
 
-    if(!hidden && timeDelta < animationDuration) requestAnimationFrame(animate);
+    if(state === "PLAYING" && timeDelta < animationDuration) requestAnimationFrame(animate);
     else {
+      state = "STOPPED";
       startTime = undefined;
-      hidden = true;
     }
   }
 
-  let hidden: boolean = true;
+  let pauseOffset: number = 0;
+  let pauseLeft: number;
+  $: pauseLeft = (pauseOffset - scroll) * pixelsPerSecond;
+
+  let state: "PLAYING" | "PAUSED" | "STOPPED" = "STOPPED";
   audioStatusStore.subscribe(status => {
-    hidden = status === null;
-    if (status) {
+    state = status.type;
+    if (status.type === "PLAYING") {
       offset = status.offset;
       requestAnimationFrame(animate);
+    } else if (status.type === "PAUSED") {
+      pauseOffset = status.offset;
     }
   });
 </script>
 
 <style>
-  .line {
+  .playLine {
     position: absolute;
     width: 1px;
     left: 50%;
@@ -46,8 +53,21 @@
     pointer-events: none;
     z-index: 2;
   }
+
+  .pauseLine {
+    position: absolute;
+    width: 1px;
+    top: 30px;
+    bottom: 0;
+    transform: translateX(-50%);
+    background-color: red;
+    pointer-events: none;
+    z-index: 2;
+  }
 </style>
 
-{#if !hidden}
-  <div class="line"/>
+{#if state === "PLAYING"}
+  <div class="playLine"/>
+{:else if state === "PAUSED"}
+  <div class="pauseLine" style={`left: ${pauseLeft}px;`}/>
 {/if}
