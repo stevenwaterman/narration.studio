@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { create_in_transition } from "svelte/internal";
   import { audioStatusStore } from "../processor";
 
   export let duration: number;

@@ -6,6 +6,7 @@
   import PlayCursor from "./overlay/PlayCursor.svelte";
   import TokensOverlay from "./overlay/tokens/TokensOverlay.svelte";
   import { dragStart, drag, dragEnd } from "../drag";
+import ScriptDisplay from "./ScriptDisplay.svelte";
 
   export let tokens: EditorToken[];
   export let buffer: AudioBuffer;
@@ -82,12 +83,24 @@
     const requiredScrolling = newMouseSecs - oldMouseSecs;
     setScroll(scroll - requiredScrolling);
   }
+
+  let cursorPositionSeconds: number | null;
 </script>
 
 <style>
   .container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .canvasContainer {
     position: relative;
-    height: 300px;
+    height: 50vh;
+    width: 100%;
   }
 
   canvas {
@@ -108,21 +121,24 @@
 <button on:click={() => save(tokens)}>Save</button>
 
 <div class="container"
+  on:mousemove={drag}
+>
+  <div class="canvasContainer"
   on:mousedown|preventDefault={dragStart({
     button: "LEFT", 
     onDrag: dragHandler,
     otherInfoGetter: () => scroll,
     onEnd: () => {}
   })}
-
   on:mouseup|preventDefault={dragEnd}
-  on:mouseout|preventDefault|self={dragEnd} 
-  on:mousemove={drag}
+  on:mouseout|preventDefault|self={dragEnd}
   on:wheel|preventDefault={onWheel}
   on:contextmenu|preventDefault={() => {}}
->
-  <PlayCursor bind:scroll duration={duration} timelineWidthSecs={timelineWidthSecs}/>
-  <Timestamps scroll={scroll} pixelsPerSecond={pixelsPerSecond} duration={duration} on:play={e => startAudio(e.detail)}/>
-  <TokensOverlay scroll={scroll} pixelsPerSecond={pixelsPerSecond} bind:tokens audioDuration={audioDuration}/>
-  <canvas bind:this={canvas} bind:clientWidth={timelineWidth} />
+  >
+    <PlayCursor bind:scroll duration={duration} timelineWidthSecs={timelineWidthSecs}/>
+    <Timestamps bind:cursorPositionSeconds scroll={scroll} pixelsPerSecond={pixelsPerSecond} duration={duration} on:play={e => startAudio(e.detail)}/>
+    <TokensOverlay scroll={scroll} pixelsPerSecond={pixelsPerSecond} bind:tokens audioDuration={audioDuration}/>
+    <canvas bind:this={canvas} bind:clientWidth={timelineWidth} />
+  </div>
+  <ScriptDisplay tokens={drawTokens} scroll={scroll} timelineWidthSecs={timelineWidthSecs} cursorPositionSeconds={cursorPositionSeconds}/>
 </div>
