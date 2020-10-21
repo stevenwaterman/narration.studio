@@ -5,6 +5,7 @@
   import Timestamps from "./overlay/Timestamps.svelte";
   import PlayCursor from "./overlay/PlayCursor.svelte";
   import TokensOverlay from "./overlay/tokens/TokensOverlay.svelte";
+  import { dragStart, drag, dragEnd } from "../drag";
 
   export let tokens: EditorToken[];
   export let buffer: AudioBuffer;
@@ -61,43 +62,25 @@
     scroll = Math.min(Math.max(minScroll, value), maxScroll)
   }
 
-  let dragging: {
-    startMouse: number;
-    startScroll: number;
-  } | null;
-  function startDrag(event: MouseEvent) {
-    if(event.button === 0) {
-      dragging = {startMouse: event.screenX, startScroll: scroll};
-    }
+  function dragHandler(delta: number, startScroll: number) {
+      const dragSec = delta / pixelsPerSecond;
+      setScroll(startScroll - dragSec);
   }
-  function endDrag(event: MouseEvent) {
-    dragging = null;
-  }
-  function drag(event: MouseEvent) {
-    if(dragging) {
-      const x = event.screenX;
-      const dragPx = dragging.startMouse - x;
-      const dragSec = dragPx / pixelsPerSecond;
-      setScroll(dragging.startScroll + dragSec);
-    }
-  }
-  function onWheel({deltaX, deltaY, offsetX, shiftKey}: WheelEvent) {
-    const oldMouseSecs = offsetX / pixelsPerSecond;
+
+  function onWheel(event: WheelEvent) {
+    const {deltaX, deltaY, clientX, shiftKey} = event;
+    const oldMouseSecs = clientX / pixelsPerSecond;
     if (shiftKey) {
       if (deltaY) setScroll(scroll + deltaY / pixelsPerSecond);
     } else {
-      if (deltaY < 0) pixelsPerSecond *= 1.1;
-      if (deltaY > 0) pixelsPerSecond /= 1.1;
+      if (deltaY < 0) pixelsPerSecond *= 1.2;
+      if (deltaY > 0) pixelsPerSecond /= 1.2;
     }
     if (deltaX) setScroll(scroll - deltaX / pixelsPerSecond)
     
-    const newMouseSecs = screenX / pixelsPerSecond;
-    const requiredScrolling = oldMouseSecs - newMouseSecs;
-    setScroll(scroll + requiredScrolling);
-  }
-
-  function contextMenu(event: MouseEvent) {
-    event.preventDefault();
+    const newMouseSecs = clientX / pixelsPerSecond;
+    const requiredScrolling = newMouseSecs - oldMouseSecs;
+    setScroll(scroll - requiredScrolling);
   }
 </script>
 
@@ -125,12 +108,18 @@
 <button on:click={() => save(tokens)}>Save</button>
 
 <div class="container"
-  on:mousedown|preventDefault={startDrag} 
-  on:mouseup|preventDefault={endDrag}
-  on:mouseout|preventDefault={endDrag} 
+  on:mousedown|preventDefault={dragStart({
+    button: "LEFT", 
+    onDrag: dragHandler,
+    otherInfoGetter: () => scroll,
+    onEnd: () => {}
+  })}
+
+  on:mouseup|preventDefault={dragEnd}
+  on:mouseout|preventDefault|self={dragEnd} 
   on:mousemove={drag}
   on:wheel|preventDefault={onWheel}
-  on:contextmenu={contextMenu}
+  on:contextmenu|preventDefault={() => {}}
 >
   <PlayCursor bind:scroll duration={duration} timelineWidthSecs={timelineWidthSecs}/>
   <Timestamps scroll={scroll} pixelsPerSecond={pixelsPerSecond} duration={duration} on:play={e => startAudio(e.detail)}/>

@@ -28,6 +28,7 @@
 <style>
   :global(body) {
     overflow: hidden;
+    padding: 0;
   }
 </style>
 

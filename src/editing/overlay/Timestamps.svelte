@@ -110,7 +110,7 @@ import { play } from "../processor";
 <div class="cursor" style={`transform: translateX(calc(${cursorPosition}px - 50%))`}/>
 {/if}
 
-<div class="timestamps" bind:clientWidth on:mouseover={mouseEnter} on:mouseout={mouseLeave} on:mousemove={mouseMove} on:click={mouseClick}>
+<div class="timestamps" bind:clientWidth on:mouseover={mouseEnter} on:mouseout|self={mouseLeave} on:mousemove={mouseMove} on:click={mouseClick}>
   {#each timestamps as {left, mins, secs} (left)}
     <div class="column" style={`transform: translateX(calc(${left}px - 50%))`} transition:fade>
       <div class="timestamp">{mins}:{secs}</div>

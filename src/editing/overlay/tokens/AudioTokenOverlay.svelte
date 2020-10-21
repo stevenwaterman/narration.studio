@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { AudioToken } from "../../../tokens";
   import { fade } from "svelte/transition";
+import { dragStart } from "../../../drag";
 
   export let pixelsPerSecond: number;
   export let token: AudioToken;
@@ -10,77 +11,64 @@
   $: width = token.duration * pixelsPerSecond;
 
   let clamped: "LEFT" | "RIGHT" | null = null;
-  let dragStart: {mouse: number, offset: number, duration: number, side: "LEFT" | "RIGHT"} | null = null;
 
   let displayLeftClamp: boolean;
   let displayRightClamp: boolean;
-  $: displayLeftClamp = dragStart !== null && clamped === "LEFT";
-  $: displayRightClamp = dragStart !== null && clamped === "RIGHT";
+  $: displayLeftClamp = clamped === "LEFT";
+  $: displayRightClamp = clamped === "RIGHT";
 
-  function startDrag(event: MouseEvent, side: "LEFT" | "RIGHT") {
-    if (event.button === 2 && side === "RIGHT") {
-      event.stopPropagation();
-      dragStart = {mouse: event.screenX, offset: token.offset, duration: token.duration, side};
-    } else if (event.button === 2 && side === "LEFT") {
-      dragStart = {mouse: event.screenX, offset: token.offset, duration: token.duration, side};
+  function panHandler(delta: number, originalOffset: number) {
+    const draggedSeconds = delta / pixelsPerSecond;
+
+    const newOffset = originalOffset - draggedSeconds;
+    const minOffset = 0;
+    const maxOffset = audioDuration - token.duration;
+    if (newOffset < minOffset) {
+      token.offset = minOffset;
+      clamped = "LEFT";
+    } else if (newOffset > maxOffset) {
+      token.offset = maxOffset;
+      clamped = "RIGHT";
+    } else {
+      token.offset = newOffset;
+      clamped = null;
     }
   }
-  function endDrag() {
-    dragStart = null;
-  }
-  function drag(event: MouseEvent) {
-    if (dragStart === null) return;
 
-    const dragEnd = event.screenX;
-    const draggedPixels = dragEnd - dragStart.mouse;
-    const draggedSeconds = draggedPixels / pixelsPerSecond;
+  function stretchHandler(delta: number, originalDuration: number) {
+    const draggedSeconds = delta / pixelsPerSecond;
 
-    if (dragStart.side === "LEFT") {
-      const newOffset = dragStart.offset - draggedSeconds;
-      const minOffset = 0;
-      const maxOffset = audioDuration - token.duration;
-      if (newOffset < minOffset) {
-        token.offset = minOffset;
-        clamped = "LEFT";
-      } else if (newOffset > maxOffset) {
-        token.offset = maxOffset;
-        clamped = "RIGHT";
-      } else {
-        token.offset = newOffset;
-        clamped = null;
-      }
-      
+    const newDuration = originalDuration + draggedSeconds;
+    const minDuration = 0.1;
+    const maxDuration = audioDuration - token.offset;
+    if (newDuration <= minDuration) {
+      token.duration = minDuration;
+      clamped = "LEFT";
+    } else if (newDuration >= maxDuration) {
+      token.duration = maxDuration;
+      clamped = "RIGHT";
     } else {
-      const newDuration = dragStart.duration + draggedSeconds;
-      const minDuration = 0.1;
-      const maxDuration = audioDuration - token.offset;
-      if (newDuration <= minDuration) {
-        token.duration = minDuration;
-        clamped = "LEFT";
-      } else if (newDuration >= maxDuration) {
-        token.duration = maxDuration;
-        clamped = "RIGHT";
-      } else {
-        token.duration = newDuration;
-        clamped = null;
-      }
+      token.duration = newDuration;
+      clamped = null;
     }
   }
   </script>
   
   <style>
-    .leftClickRegion {
+    .panRegion {
       flex-grow: 1;
       flex-shrink: 1;
       cursor: ew-resize;
     }
-    .rightClickRegion {
+
+    .stretchRegion {
       width: 40px;
       cursor: e-resize;
     }
-    .rightClickRegion:hover {
+    .stretchRegion:hover {
       background-color: rgba(0, 0, 0, 0.2);
     }
+
     .container {
       border: 1px solid black;
       display: flex;
@@ -91,6 +79,7 @@
       position: relative;
       box-sizing: border-box;
     }
+
     .leftClamp {
       position: absolute;
       top: 0;
@@ -114,8 +103,20 @@
   </style>
   
   <div class="container" style={`width:${width}px`}>
-    <div class="leftClickRegion" on:mousedown|preventDefault={event => startDrag(event, "LEFT")} on:mouseup|preventDefault={endDrag} on:mouseout|preventDefault={endDrag} on:mousemove={drag}/>
-    <div class="rightClickRegion" on:mousedown|preventDefault={event => startDrag(event, "RIGHT")} on:mouseup|preventDefault={endDrag} on:mouseout|preventDefault={endDrag} on:mousemove={drag}/>
+    <div class="panRegion" on:mousedown|preventDefault={dragStart({
+      button: "RIGHT", 
+      onDrag: panHandler, 
+      otherInfoGetter: () => token.offset, 
+      onEnd: () => clamped = null
+    })}/>
+
+    <div class="stretchRegion" on:mousedown|preventDefault={dragStart({
+      button: "RIGHT", 
+      onDrag: stretchHandler, 
+      otherInfoGetter: () => token.duration, 
+      onEnd: () => clamped = null
+    })}/>
+
     {#if displayLeftClamp}
       <div class="leftClamp" transition:fade/>
     {/if}
