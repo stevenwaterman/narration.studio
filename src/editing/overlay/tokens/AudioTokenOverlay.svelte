@@ -63,6 +63,7 @@ import { dragStart } from "../../../drag";
 
     .stretchRegion {
       width: 40px;
+      max-width: 50%;
       cursor: e-resize;
     }
     .stretchRegion:hover {
@@ -70,7 +71,6 @@ import { dragStart } from "../../../drag";
     }
 
     .container {
-      border: 1px solid black;
       display: flex;
       flex-direction: row;
       flex-grow: 0;

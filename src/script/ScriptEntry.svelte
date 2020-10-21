@@ -98,12 +98,12 @@
   textarea {
     width: 100%;
     height: 50%;
+    padding: 12px;
   }
 </style>
 
-<p>Script:</p>
-<textarea bind:value={script}/>
-<ol>
+<textarea bind:value={script} placeholder="Paste your script in here"/>
+<!-- <ol>
   {#each tokens as token}
     {#if token.type === "TEXT"}
       <li>{token.script}</li>
@@ -111,4 +111,4 @@
       <li>&lt;{token.duration}s pause&gt;</li>
     {/if}
   {/each}
-</ol>
+</ol> -->

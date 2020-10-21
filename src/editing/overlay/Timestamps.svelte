@@ -1,7 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { fade } from "svelte/transition";
-import { play } from "../processor";
 
   export let duration: number;
   export let scroll: number;
@@ -36,6 +35,7 @@ import { play } from "../processor";
     }));
 
   let hovering = false;
+  
   let cursorPosition: number | null = null;
   export let cursorPositionSeconds: number | null;
   $: cursorPositionSeconds = cursorPosition === null ? null : scroll + cursorPosition / pixelsPerSecond;

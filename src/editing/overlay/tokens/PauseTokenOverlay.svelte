@@ -1,6 +1,6 @@
 <script lang="ts">
-import { dragStart } from "../../../drag";
-
+  import { dragStart } from "../../../drag";
+  import { fade } from "svelte/transition";
   import type { PauseToken } from "../../../tokens";
 
   export let pixelsPerSecond: number;
@@ -13,16 +13,15 @@ import { dragStart } from "../../../drag";
     const draggedSeconds = delta / pixelsPerSecond;
     token.duration = Math.max(0.1, startDuration + draggedSeconds);
   }
+
+  let showTime: boolean = false;
 </script>
 
 <style>
   div {
     flex-grow: 0;
     flex-shrink: 0;
-    border-top: 1px solid black;
-    border-bottom: 1px solid black;
     cursor: e-resize;
-    background-color: white;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -34,8 +33,10 @@ import { dragStart } from "../../../drag";
 <div style={`width: ${width}px;`} on:mousedown|preventDefault={dragStart({
   button: "RIGHT", 
   onDrag: drag, 
-  otherInfoGetter: () => token.duration, 
-  onEnd: () => {} 
+  otherInfoGetter: () => {showTime = true; return token.duration}, 
+  onEnd: () => {showTime = false}
 })}>
-  {token.duration.toFixed(2)}s
+  {#if showTime}
+    <div transition:fade>{token.duration.toFixed(2)}s</div>
+  {/if}
 </div> 

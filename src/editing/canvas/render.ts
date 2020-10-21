@@ -23,10 +23,9 @@ self.addEventListener('message', ({data}: Message) => {
 function setup({ canvas, channel }: RenderMessageCreate) {
   offscreen = canvas;
   gl = canvas.getContext("webgl2", {preserveDrawingBuffer: true}) as WebGL2RenderingContext;
-  init(gl);
-
+  
   vertices = preprocess(channel);
-  gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+  init();
 }
 
 function preprocess(channel: Float32Array): Float32Array {
@@ -70,22 +69,28 @@ function drawWaveform({tokens, pixelsPerSecond, scroll, width, height}: RenderMe
 
   let timecode = -scroll;
   for(const token of tokens) {
-    if(token.type === "WAVE") {
-      const drawAtTime = Math.max(0, timecode);
-      const addedCrop = drawAtTime - timecode;
-      const tokenOffset = token.start + addedCrop;
-      const croppedDuration = token.duration - addedCrop;
-      const widthSecs = width / pixelsPerSecond;
-      const tokenDuration = Math.min(widthSecs - drawAtTime, croppedDuration);
-      if (tokenDuration > 0) {
-        drawSection(drawAtTime, tokenOffset, tokenDuration, pixelsPerSecond);
+    const drawAtTime = Math.max(0, timecode);
+    const addedCrop = drawAtTime - timecode;
+    const croppedDuration = token.duration - addedCrop;
+    const widthSecs = width / pixelsPerSecond;
+    const tokenDuration = Math.min(widthSecs - drawAtTime, croppedDuration);
+
+    if(tokenDuration > 0) {
+      setScale(pixelsPerSecond)
+
+      if(token.type === "WAVE") {
+        const tokenOffset = token.start + addedCrop;
+        drawSection(drawAtTime, tokenOffset, tokenDuration);
       }
+      
+      drawOutline(drawAtTime, tokenDuration);
     }
+    
     timecode += token.duration;
   }
 }
 
-function drawSection(drawAtTime: number, tokenOffset: number, tokenDuration: number, pixelsPerSecond: number) {
+function setScale(pixelsPerSecond: number) {
   const lineCount = vertices.length / 2;
   const sampleCount = lineCount * renderPixelSize;
   const totalDuration = sampleCount / sampleRate;
@@ -101,7 +106,9 @@ function drawSection(drawAtTime: number, tokenOffset: number, tokenDuration: num
 
   const scaleLoc = gl.getUniformLocation(program, "u_scale");
   gl.uniform4fv(scaleLoc, [scale, 1, 1, 1]);
+}
 
+function drawSection(drawAtTime: number, tokenOffset: number, tokenDuration: number) {
   const startVertex = Math.round(tokenOffset * sampleRate / renderPixelSize);
   const naturalTime = vertices[startVertex * 2];
   const offset = drawAtTime - naturalTime;
@@ -112,12 +119,21 @@ function drawSection(drawAtTime: number, tokenOffset: number, tokenDuration: num
   const vertexCount = Math.round(tokenDuration * sampleRate / renderPixelSize);
 
   const start = Math.max(0, startVertex - 1);
-  const end = Math.min(lineCount, start + vertexCount + 2);
-  const count = end - start;
-  gl.drawArrays(gl.LINE_STRIP, start, count);
+  const end = Math.min(vertices.length / 2, start + vertexCount + 2);
+  gl.drawArrays(gl.LINE_STRIP, start, end - start);
 }
 
-const vsSource = `
+function drawOutline(drawAtTime: number, tokenDuration: number) {
+  const offsetLoc = gl.getUniformLocation(program, "u_offset");
+  gl.uniform4fv(offsetLoc, [drawAtTime, 0, 0, 0]);
+  
+  const outline = new Float32Array([0, -1, 0, 1, tokenDuration, 1, tokenDuration, -1]);
+
+  gl.bufferSubData(gl.ARRAY_BUFFER, vertices.length * vertices.BYTES_PER_ELEMENT, outline);
+  gl.drawArrays(gl.LINE_LOOP, vertices.length / 2, 4);
+}
+
+const vectorShader = `
   uniform vec4 u_offset;
   uniform vec4 u_scale;
   attribute vec4 a_Position;
@@ -126,16 +142,17 @@ const vsSource = `
   }
 `;
 
-const fsSource = `
+const fragmentShader = `
   void main() {
     gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
   }
 `;
 
-function init(gl: WebGL2RenderingContext) {
-  program = initShaders(gl, vsSource, fsSource);
-  initVertexBuffers(gl, program);
+function init() {
+  program = initShaders(gl, vectorShader, fragmentShader);
+  const buffers = initVertexBuffers(gl, program);
   gl.useProgram(program);
+  return buffers;
 }
 
 function initShaders(gl: WebGL2RenderingContext, vs_source: string, fs_source: string): WebGLProgram {
@@ -158,12 +175,15 @@ function initShaders(gl: WebGL2RenderingContext, vs_source: string, fs_source: s
 }
 
 function initVertexBuffers(gl: WebGL2RenderingContext, program: WebGLProgram) {
-    const vertexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+  const buffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 
-    const a_Position = gl.getAttribLocation(program, 'a_Position');
-    gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(a_Position);
+  const a_Position = gl.getAttribLocation(program, 'a_Position');
+  gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(a_Position);
+
+  gl.bufferData(gl.ARRAY_BUFFER, (vertices.length + 8) * vertices.BYTES_PER_ELEMENT, gl.STATIC_DRAW);
+  gl.bufferSubData(gl.ARRAY_BUFFER, 0, vertices);
 }
 
 function makeShader(gl: WebGL2RenderingContext, src: string, type: number) {

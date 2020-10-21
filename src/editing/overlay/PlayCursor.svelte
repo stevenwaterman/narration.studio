@@ -17,9 +17,12 @@
     const timeFrac = timeDelta / animationDuration;
     scroll = offset + timeFrac * animationDuration - timelineWidthSecs / 2;
 
-    if(state === "PLAYING" && timeDelta < animationDuration) requestAnimationFrame(animate);
-    else {
-      state = "STOPPED";
+    if(state === "PLAYING") {
+      if (timeDelta < animationDuration) requestAnimationFrame(animate);
+      else audioStatusStore.set({type: "STOPPED"});
+    }
+
+    if (state !== "PLAYING") {
       startTime = undefined;
     }
   }

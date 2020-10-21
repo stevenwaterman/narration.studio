@@ -17,13 +17,14 @@
   let currentTime: number | null;
   $: currentTime = playingCursorPositionSeconds === null ? cursorPositionSeconds : playingCursorPositionSeconds;
 
-  type ScriptToken = {start: number; end: number; raw: string};
+  type ScriptToken = {idx: number; start: number; end: number; raw: string};
 
   function toScriptTokens(tokens: DrawToken[]): ScriptToken[] {
     const output: ScriptToken[] = [];
     let time = 0;
     tokens.forEach(token => {
       output.push({
+        idx: token.idx,
         start: time,
         end: time + token.duration,
         raw: token.raw
@@ -35,6 +36,11 @@
 
   let scriptTokens: ScriptToken[];
   $: scriptTokens = toScriptTokens(tokens);
+
+  let highlightedDiv: HTMLDivElement | undefined = undefined;
+  $: highlightedDiv && highlightedDiv.scrollIntoView({
+    block: "nearest"
+  })
 </script>
 
 <style>
@@ -43,13 +49,24 @@
   }
 
   p {
-    max-width: 1000px;
+    width: 1000px;
     padding: 10px;
+    overflow-y: scroll;
+    border: 1px solid black;
+  }
+
+  div {
+    display: inline;
+    white-space: pre;
   }
 </style>
 
 <p>
-  {#each scriptTokens as token}
-    <span class:highlighted={currentTime !== null && currentTime >= token.start && currentTime < token.end}>{token.raw}</span>
+  {#each scriptTokens as token (token.idx)}
+    {#if currentTime !== null && currentTime >= token.start && currentTime < token.end}
+      <div class="highlighted" bind:this={highlightedDiv}>{token.raw}</div>
+    {:else}
+      <div>{token.raw}</div>
+    {/if}
   {/each}
 </p>

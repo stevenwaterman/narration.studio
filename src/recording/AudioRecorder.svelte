@@ -3,6 +3,7 @@
   import leven from "fast-levenshtein";
   import { toPronunciation } from "./pronunciation";
   import type { TextToken, TimingToken } from "../tokens";
+  import { tweened } from "svelte/motion";
 
   export let textTokens: TextToken[];
   export let timingTokens: TimingToken[] = [];
@@ -29,15 +30,6 @@
   $: atEnd = currentLine === undefined;
   let completed: () => void = () => {};
 
-  let bounds: {
-    currDistanceLowerBound: number;
-    currDistance: number;
-    currDistanceUpperBound: number;
-    prevDistanceLowerBound: number;
-    prevDistance: number;
-    prevDistanceUpperBound: number;
-  } = {} as any;
-
   let speechOffset: number = 0;
   let speechStart: number = 0;
 
@@ -54,7 +46,17 @@
     const item = results.item(0);
     const {transcript, confidence} = item.item(0);
 
-    console.log(transcript);
+    analysis = null;
+
+    const duration = event.timeStamp - speechStart;
+    if (duration < 500) {
+      analysis = {
+        transcript,
+        decision: "SHORT"
+      };
+      return;
+    }
+
     if (atEnd && transcript.toLowerCase() === "completed") {
       completed();
       return;
@@ -75,14 +77,16 @@
     const maxLower = Math.max(prevDistanceLowerBound, currDistanceLowerBound);
     const minUpper = Math.min(prevDistanceUpperBound, currDistanceUpperBound);
 
-    console.log(prevDistance, currDistance, confidence);
-    
     if (maxLower > minUpper) {
       if (prevDistance !== undefined && (currDistance === undefined || prevDistance < currDistance)) {
         if (prevDistanceUpperBound !== undefined && prevDistanceUpperBound < 0.5) {
           const lastToken = timingTokens[timingTokens.length - 1];
           lastToken.timings.start = speechStart - speechOffset;
           lastToken.timings.end = event.timeStamp - speechOffset;
+          analysis = {
+            transcript,
+            decision: "PREVIOUS"
+          };
         }
       } else {
         if (currDistanceUpperBound !== undefined && currDistanceUpperBound < 0.5) {
@@ -95,18 +99,20 @@
             type: "TIMING"
           }];
           currentTokenNumber++;
+          analysis = {
+            transcript,
+            decision: "CURRENT"
+          };
         }
       }
     }
-
-    bounds = {
-      currDistanceLowerBound: currDistanceLowerBound || 0, 
-      currDistance: currDistance || 0, 
-      currDistanceUpperBound: currDistanceUpperBound || 0,
-      prevDistanceLowerBound: prevDistanceLowerBound || 0,
-      prevDistance: prevDistance || 0,
-      prevDistanceUpperBound: prevDistanceUpperBound || 0
-    };
+    
+    if (analysis === null) {
+      analysis = {
+        transcript,
+        decision: "UNCLEAR"
+      }
+    }
   }
 
   let listening: boolean = false;
@@ -121,7 +127,6 @@
   recognition.onend = () => {
     listening = false;
     hearing = false;
-    console.log("Restarting");
     recognition.start();
   }
   recognition.onspeechstart = (event) => {
@@ -142,54 +147,180 @@
         mimeType: "audio/webm;codecs=pcm"
       });
       recorder.start();
-      console.log("Started recorder");
       completed = () => recorder.stop();
       recorder.ondataavailable = (event: any) => {
-        console.log("Done");
         data = event.data;
         recognition.onend = () => {};
         recognition.stop();
       }
     });
+
+  let analysis: null | {
+    transcript: string;
+    decision: "PREVIOUS" | "CURRENT" | "UNCLEAR" | "SHORT"
+  } = null;
+
+  let progress: number;
+  $: progress = 100 * currentTokenNumber / textTokens.length;
+
+  const tweenedProgress = tweened(progress);
+  $: tweenedProgress.set(progress);
 </script>
 
-{#if prevLine !== undefined}
-  <p>
-    Previous Line ({prevTokenNumber}): {prevLine}
-  </p>
-{/if}
+<style>
+  .circleContainer {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+  }
 
-{#if currentLine !== undefined}
-  <p>
-    Current Line ({currentTokenNumber}): {currentLine}
-  </p>
-{/if}
+  .circle {
+    width: 20px;
+    height: 20px;
+    border: 1px solid black;
+    border-radius: 50%;
+    margin: 20px;
+  }
 
-{#if atEnd}
-  <p>
-    To end, say "Completed"
-  </p>
-{/if}
+  .red {
+    background-color: red;
+  }
 
-<p>
-  Listening: {listening}
-</p>
+  .green {
+    background-color: green;
+  }
 
-<p>
-  Hearing: {hearing}
-</p>
+  .column {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    height: 100%;
+  }
 
-<p>
-  Timings:
-</p>
+  .prompt {
+    font-size: 20px;
+    margin: 20px 20px 10px 20px;
+  }
 
-<ol>
-  {#each Object.values(timingTokens) as time}
-    <li>{time.timings.start} - {time.timings.end}</li>
-  {/each}
-</ol>
+  .script {
+    font-size: 36px;
+    margin: 20px;
+    text-align: center;
+  }
 
-<div style={`background-color: green; position: fixed; bottom: 30px; height: 10px; left: ${Math.min(Math.max(bounds.prevDistanceLowerBound*100, 0), 95)}vw; right: ${100 - Math.max(Math.min(bounds.prevDistanceUpperBound*100, 100), 5)}vw;`}/>
-<div style={`background-color: red; position: fixed; bottom: 10px; height: 10px; left: ${Math.min(Math.max(bounds.currDistanceLowerBound*100, 0), 95)}vw; right: ${100 - Math.max(Math.min(bounds.currDistanceUpperBound*100, 100), 5)}vw;`}/>
+  .transcript {
+    font-size: 20px;
+    margin: 20px
+  }
 
-{speechOffset}
+  .decision {
+    font-size: 20px;
+    margin: 20px
+  }
+
+  .spacer {
+    height: 100px;
+    flex-shrink: 1;
+    flex-grow: 1;
+  }
+
+  .bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+
+    background-color: green;
+  }
+
+  .barContainer {
+    position: relative;
+    width: 100%;
+    height: 10px;
+    flex-shrink: 0;
+    flex-grow: 0;
+  }
+</style>
+
+<div class="column">
+  {#if currentTokenNumber === 0}
+    <div class="prompt">
+      To begin, say:
+    </div>
+
+    <div class="script">
+      {currentLine}
+    </div>
+  {:else if !atEnd}
+    <div class="prompt">
+      If you didn't like your delivery of the last line, say it again:
+    </div>
+
+    <div class="script">
+      {prevLine}
+    </div>
+
+    <div class="spacer"/>
+
+    <div class="prompt">
+      Or say the next line to move on:
+    </div>
+
+    <div class="script">
+      {currentLine}
+    </div>
+  {:else}
+    <div class="prompt">
+      If you didn't like your delivery of the last line, say it again:
+    </div>
+
+    <div class="script">
+      {prevLine}
+    </div>
+
+    <div class="spacer"/>
+
+    <div class="prompt">
+      Or if you're done, say:
+    </div>
+
+    <div class="script">
+      Completed
+    </div>
+  {/if}
+
+  <div class="spacer"/>
+
+  <div class="circleContainer">
+    <div class="circle" class:red={listening}/>
+    <div class="circle" class:green={hearing}/>
+  </div>
+
+  {#if analysis !== null}
+    <div class="transcript">
+      I heard <b>{analysis.transcript}</b>.
+    </div>
+
+    <div class="decision">
+      {#if analysis && analysis.decision === "UNCLEAR"}
+        I can't tell which line that is.
+      {:else if analysis && analysis.decision === "SHORT"}
+        I didn't notice you start talking. Try waiting a second longer between lines.
+      {:else if analysis && analysis.decision === "CURRENT"}
+        I think that was the new line.
+      {:else if analysis && analysis.decision === "PREVIOUS"}
+        I think that was the old line.
+      {/if}
+    </div>
+  {/if}
+
+  <div class="spacer"/>
+
+  <div class="barContainer">
+    <div class="bar" style={`width: ${$tweenedProgress}%`}/>
+  </div>
+</div>
+
+
+

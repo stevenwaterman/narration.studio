@@ -46,8 +46,7 @@ type StoppedState = {
 }
 type AudioState = PlayingState | PausedState | StoppedState;
 
-const internalAudioStatusStore: Writable<AudioState> = writable({type: "STOPPED"});
-export const audioStatusStore: Readable<AudioState> = internalAudioStatusStore;
+export const audioStatusStore: Writable<AudioState> = writable({type: "STOPPED"});
 
 let audioState: AudioState; 
 audioStatusStore.subscribe(state => {
@@ -80,14 +79,14 @@ export function play(tokens: EditorToken[], startTime: number = 0): void {
       timeOffset = finishTimeOffset;
     }
   });
-  internalAudioStatusStore.set({type: "PLAYING", offset: startTime, ctxStartTime: currentTime});
+  audioStatusStore.set({type: "PLAYING", offset: startTime, ctxStartTime: currentTime});
 }
 
 export function stop(tokens: EditorToken[]): void {
   tokens.forEach(token => {
     if (token.type === "AUDIO") token.stop();
   });
-  internalAudioStatusStore.set({type: "STOPPED"});
+  audioStatusStore.set({type: "STOPPED"});
 }
 
 export function pause(tokens: EditorToken[]): void {
@@ -95,7 +94,7 @@ export function pause(tokens: EditorToken[]): void {
     if (token.type === "AUDIO") token.stop();
   });
   const oldOffset = audioState.type === "PLAYING" ? audioState.offset : 0;
-  internalAudioStatusStore.set({type: "PAUSED", offset: oldOffset + getCurrentTime()});
+  audioStatusStore.set({type: "PAUSED", offset: oldOffset + getCurrentTime()});
 }
 
 export function togglePause(tokens: EditorToken[]): void {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { play, sampleRate, save, stop, togglePause } from "./processor";
+  import { audioStatusStore, play, sampleRate, save, stop, togglePause } from "./processor";
   import type { DrawToken, EditorToken } from "../tokens";
   import RenderController from "./canvas/renderController";
   import Timestamps from "./overlay/Timestamps.svelte";
@@ -72,6 +72,7 @@ import ScriptDisplay from "./ScriptDisplay.svelte";
     } else {
       if (deltaY < 0) pixelsPerSecond *= 1.2;
       if (deltaY > 0) pixelsPerSecond /= 1.2;
+      pixelsPerSecond = Math.min(100 * 1000, pixelsPerSecond);
     }
     if (deltaX) setScroll(scroll - deltaX / pixelsPerSecond)
     
@@ -118,8 +119,8 @@ import ScriptDisplay from "./ScriptDisplay.svelte";
   }
 </style>
 
-<button on:click={() => togglePause(tokens)}>Play / Pause</button>
-<button on:click={() => stop(tokens)}>Stop</button>
+<button on:click={() => togglePause(tokens)}>{$audioStatusStore.type === "PLAYING" ? "Pause" : "Play"}</button>
+<button disabled={$audioStatusStore.type !== "STOPPED"} on:click={() => stop(tokens)}>Stop</button>
 <button on:click={() => save(tokens)}>Save</button>
 
 <div class="container"
