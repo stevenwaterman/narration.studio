@@ -3,7 +3,6 @@ import toWav from "audiobuffer-to-wav";
 import download from "downloadjs"
 import { ProcessingToken, EditorToken, AudioToken } from "../tokens";
 import { writable, Writable, Readable } from "svelte/store";
-import { claim_text } from "svelte/internal";
 
 export const sampleRate = 44100;
 let audioContext: AudioContext | null = null;
@@ -23,7 +22,7 @@ export function createEditorTokens(tokens: ProcessingToken[], buffer: AudioBuffe
     return {
       type: "AUDIO",
       idx: token.idx,
-      offset: offset - 0.5, 
+      offset: offset - 0.5,
       duration: duration,
       buffer: buffer,
       raw: token.raw,
@@ -90,11 +89,19 @@ export function stop(tokens: EditorToken[]): void {
 }
 
 export function pause(tokens: EditorToken[]): void {
+  let duration = 0;
   tokens.forEach(token => {
     if (token.type === "AUDIO") token.stop();
+    duration += token.duration;
   });
   const oldOffset = audioState.type === "PLAYING" ? audioState.offset : 0;
-  audioStatusStore.set({type: "PAUSED", offset: oldOffset + getCurrentTime()});
+  const newOffset = oldOffset + getCurrentTime();
+
+  if (newOffset <= duration) {
+    audioStatusStore.set({type: "STOPPED"});
+  } else {
+    audioStatusStore.set({type: "PAUSED", offset: newOffset});
+  }
 }
 
 export function togglePause(tokens: EditorToken[]): void {

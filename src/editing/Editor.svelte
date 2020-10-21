@@ -6,7 +6,7 @@
   import PlayCursor from "./overlay/PlayCursor.svelte";
   import TokensOverlay from "./overlay/tokens/TokensOverlay.svelte";
   import { dragStart, drag, dragEnd } from "../drag";
-import ScriptDisplay from "./ScriptDisplay.svelte";
+  import ScriptDisplay from "./ScriptDisplay.svelte";
 
   export let tokens: EditorToken[];
   export let buffer: AudioBuffer;
@@ -84,7 +84,7 @@ import ScriptDisplay from "./ScriptDisplay.svelte";
   let cursorPositionSeconds: number | null;
 
   function keypress(event: KeyboardEvent) {
-    if(event.key === "Space") {
+    if(event.code === "Space") {
       togglePause(tokens);
     }
   }
@@ -104,6 +104,8 @@ import ScriptDisplay from "./ScriptDisplay.svelte";
     position: relative;
     height: 50vh;
     width: 100%;
+    flex-grow: 1;
+    flex-shrink: 1;
   }
 
   canvas {
@@ -117,15 +119,33 @@ import ScriptDisplay from "./ScriptDisplay.svelte";
     cursor: ew-resize;
     z-index: 0;
   }
-</style>
 
-<button on:click={() => togglePause(tokens)}>{$audioStatusStore.type === "PLAYING" ? "Pause" : "Play"}</button>
-<button disabled={$audioStatusStore.type !== "STOPPED"} on:click={() => stop(tokens)}>Stop</button>
-<button on:click={() => save(tokens)}>Save</button>
+  .buttonRow {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-self: center;
+    font-size: 36px;
+  }
+
+  .button {
+    display: flex;
+    justify-content: center;
+    margin: 10px;
+    width: 50px;
+    height: 50px;
+    border-radius: 25%;
+    border: 1px solid black;
+    user-select: none;
+    cursor: pointer;
+  }
+</style>
 
 <div class="container"
   on:mousemove={drag}
 >
+  <ScriptDisplay tokens={drawTokens} {scroll} {timelineWidthSecs} {cursorPositionSeconds}/>
+
   <div class="canvasContainer"
   on:mousedown|preventDefault={dragStart({
     button: "LEFT", 
@@ -143,6 +163,11 @@ import ScriptDisplay from "./ScriptDisplay.svelte";
     <TokensOverlay bind:tokens {scroll} {pixelsPerSecond}  {audioDuration}/>
     <canvas bind:this={canvas} bind:clientWidth={timelineWidth} />
   </div>
-  <ScriptDisplay tokens={drawTokens} {scroll} {timelineWidthSecs} {cursorPositionSeconds}/>
+  
+  <div class="buttonRow">
+    <div class="button" on:click={() => togglePause(tokens)}>{$audioStatusStore.type === "PLAYING" ? "⏸️" : "▶️"}</div>
+    <div class="button" disabled={$audioStatusStore.type !== "STOPPED"} on:click={() => stop(tokens)}>⏹️</div>
+    <div class="button" on:click={() => save(tokens)}>↓</div>
+  </div>
 </div>
-<svelte:window on:keypress={keypress}/>
+<svelte:body on:keypress={keypress}/>

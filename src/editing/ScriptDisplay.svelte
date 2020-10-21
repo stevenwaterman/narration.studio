@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { DrawToken } from "../tokens";
   import { audioStatusStore } from "./processor";
+  import ScriptTimestamp from "./ScriptTimestamp.svelte";
 
   export let tokens: DrawToken[];
   export let scroll: number;
@@ -17,7 +18,7 @@
   let currentTime: number | null;
   $: currentTime = playingCursorPositionSeconds === null ? cursorPositionSeconds : playingCursorPositionSeconds;
 
-  type ScriptToken = {idx: number; start: number; end: number; raw: string};
+  type ScriptToken = {idx: number; start: number; end: number; raw: string; newParagraph: boolean};
 
   function toScriptTokens(tokens: DrawToken[]): ScriptToken[] {
     const output: ScriptToken[] = [];
@@ -27,7 +28,8 @@
         idx: token.idx,
         start: time,
         end: time + token.duration,
-        raw: token.raw
+        raw: token.raw,
+        newParagraph: token.type === "PAUSE" && token.newParagraph
       });
       time += token.duration;
     })
@@ -39,7 +41,7 @@
 
   let highlightedDiv: HTMLDivElement | undefined = undefined;
   $: highlightedDiv && highlightedDiv.scrollIntoView({
-    block: "nearest"
+    block: "center"
   })
 </script>
 
@@ -53,6 +55,8 @@
     padding: 10px;
     overflow-y: scroll;
     border: 1px solid black;
+    flex-grow: 1;
+    flex-shrink: 1;
   }
 
   div {
@@ -62,11 +66,17 @@
 </style>
 
 <p>
+  <ScriptTimestamp time={0}/>
   {#each scriptTokens as token (token.idx)}
+    
     {#if currentTime !== null && currentTime >= token.start && currentTime < token.end}
       <div class="highlighted" bind:this={highlightedDiv}>{token.raw}</div>
     {:else}
       <div>{token.raw}</div>
+    {/if}
+
+    {#if token.newParagraph}
+      <ScriptTimestamp time={token.start}/>
     {/if}
   {/each}
 </p>
