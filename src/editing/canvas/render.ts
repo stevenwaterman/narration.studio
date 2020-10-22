@@ -67,23 +67,29 @@ function drawWaveform({tokens, pixelsPerSecond, scroll, width, height}: RenderMe
   gl.clearColor(1.0, 1.0, 1.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  let timecode = -scroll;
-  for(const token of tokens) {
-    const drawAtTime = Math.max(0, timecode);
-    const addedCrop = drawAtTime - timecode;
-    const croppedDuration = token.duration - addedCrop;
-    const widthSecs = width / pixelsPerSecond;
-    const tokenDuration = Math.min(widthSecs - drawAtTime, croppedDuration);
+  const pixelsPerClip = width / 2;
+  const secondsPerClip = pixelsPerClip / pixelsPerSecond;
 
-    if(tokenDuration > 0) {
+  const minSecs = scroll - secondsPerClip;
+  const maxSecs = scroll + secondsPerClip;
+
+  let timecode = 0;
+  for(const token of tokens) {
+    const drawAtTime = Math.max(minSecs, timecode);
+    const croppedFromStart = drawAtTime - timecode;
+    const startAdjustedDuration = token.duration - croppedFromStart;
+    const maxDuration = maxSecs - drawAtTime;
+    const endAdjustedDuration = Math.min(maxDuration, startAdjustedDuration);
+
+    if(endAdjustedDuration > 0) {
       setScale(pixelsPerSecond)
 
       if(token.type === "WAVE") {
-        const tokenOffset = token.start + addedCrop;
-        drawSection(drawAtTime, tokenOffset, tokenDuration);
+        const tokenOffset = token.start + croppedFromStart;
+        drawSection(drawAtTime, tokenOffset, endAdjustedDuration, scroll);
       }
       
-      drawOutline(drawAtTime, tokenDuration);
+      drawOutline(drawAtTime, endAdjustedDuration, scroll);
     }
     
     timecode += token.duration;
@@ -108,10 +114,10 @@ function setScale(pixelsPerSecond: number) {
   gl.uniform4fv(scaleLoc, [scale, 1, 1, 1]);
 }
 
-function drawSection(drawAtTime: number, tokenOffset: number, tokenDuration: number) {
+function drawSection(drawAtTime: number, tokenOffset: number, tokenDuration: number, scroll: number) {
   const startVertex = Math.round(tokenOffset * sampleRate / renderPixelSize);
   const naturalTime = vertices[startVertex * 2];
-  const offset = drawAtTime - naturalTime;
+  const offset = drawAtTime - naturalTime - scroll;
 
   const offsetLoc = gl.getUniformLocation(program, "u_offset");
   gl.uniform4fv(offsetLoc, [offset, 0, 0, 0]);
@@ -123,9 +129,9 @@ function drawSection(drawAtTime: number, tokenOffset: number, tokenDuration: num
   gl.drawArrays(gl.LINE_STRIP, start, end - start);
 }
 
-function drawOutline(drawAtTime: number, tokenDuration: number) {
+function drawOutline(drawAtTime: number, tokenDuration: number, scroll: number) {
   const offsetLoc = gl.getUniformLocation(program, "u_offset");
-  gl.uniform4fv(offsetLoc, [drawAtTime, 0, 0, 0]);
+  gl.uniform4fv(offsetLoc, [drawAtTime - scroll, 0, 0, 0]);
   
   const outline = new Float32Array([0, -1, 0, 1, tokenDuration, 1, tokenDuration, -1]);
 
@@ -138,7 +144,7 @@ const vectorShader = `
   uniform vec4 u_scale;
   attribute vec4 a_Position;
   void main() {
-    gl_Position = u_scale * (a_Position + u_offset) - vec4(1, 0, 0, 0);
+    gl_Position = u_scale * (a_Position + u_offset);
   }
 `;
 

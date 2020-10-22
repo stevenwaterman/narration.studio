@@ -1,7 +1,6 @@
 type BaseToken<TYPE extends string> = {
   type: TYPE;
   idx: number;
-  raw: string;
 };
 
 export type TextToken = BaseToken<"TEXT"> & {
@@ -10,10 +9,16 @@ export type TextToken = BaseToken<"TEXT"> & {
 
 export type PauseToken = BaseToken<"PAUSE"> & {
   duration: number;
-  newParagraph: boolean;
 };
 
-export type ScriptToken = TextToken | PauseToken;
+export type NewParagraphToken = BaseToken<"PARAGRAPH"> & {
+  duration: number;
+  raw: string;
+}
+
+export type SilenceToken = PauseToken | NewParagraphToken;
+
+export type ScriptToken = TextToken | SilenceToken;
 
 export type TimingToken = BaseToken<"TIMING"> & Omit<TextToken, "type"> & {
   timings: {
@@ -22,12 +27,12 @@ export type TimingToken = BaseToken<"TIMING"> & Omit<TextToken, "type"> & {
   }
 };
 
-export type ProcessingToken = TimingToken | PauseToken;
+export type ProcessingToken = TimingToken | SilenceToken;
 
 export type AudioToken = BaseToken<"AUDIO"> & {offset: number; duration: number; buffer: AudioBuffer; stop: () => void;};
 
-export type EditorToken = PauseToken | AudioToken;
+export type EditorToken = SilenceToken | AudioToken;
 
 export type WaveformToken = BaseToken<"WAVE"> & {start: number; duration: number;};
 
-export type DrawToken = PauseToken | WaveformToken;
+export type DrawToken = SilenceToken | WaveformToken;

@@ -26,7 +26,7 @@
   let timestamps: {left: number, mins: string, secs: string}[];
   $: timestamps = new Array(timestampCount)
     .fill(null)
-    .map((_, idx) => ({ts: scroll + timestampPeriod * (idx + 0.5), idx}))
+    .map((_, idx) => ({ts: scroll + timestampPeriod * (idx - timestampCount / 2 + 0.5), idx}))
     .filter(({ts}) => ts >= 0 && ts <= duration)
     .map(({ts, idx}) => ({
       left: timestampPx * (idx + 0.5),
@@ -40,6 +40,12 @@
   export let cursorPositionSeconds: number | null;
   $: cursorPositionSeconds = cursorPosition === null ? null : scroll + cursorPosition / pixelsPerSecond;
 
+  let minMousePosition: number;
+  $: minMousePosition = -scroll * pixelsPerSecond;
+
+  let maxMousePosition: number;
+  $: maxMousePosition = duration * pixelsPerSecond + minMousePosition;
+
   function mouseEnter() {
     hovering = true;
   }
@@ -51,19 +57,19 @@
 
   function mouseMove(event: MouseEvent) {
     if(hovering) {
-      const mousePosition = event.offsetX;
-      const minPosition = -scroll * pixelsPerSecond;
-      const maxPosition = duration * pixelsPerSecond + minPosition;
-      cursorPosition = Math.min(Math.max(minPosition, mousePosition), maxPosition);
+      const width = clientWidth === undefined ? event.offsetX : clientWidth;
+      const mousePosition = event.offsetX - width / 2;
+      cursorPosition = Math.min(Math.max(minMousePosition, mousePosition), maxMousePosition);
     }
   }
 
   const dispatch = createEventDispatcher();
 
   function mouseClick(event: MouseEvent) {
-    const x = event.offsetX;
-    const seconds = x / pixelsPerSecond;
-    const scrolledSeconds = seconds + scroll;
+    const width = clientWidth === undefined ? event.offsetX : clientWidth;
+    const mousePosition = event.offsetX - width / 2;
+    const seconds = mousePosition / pixelsPerSecond;
+    const scrolledSeconds = scroll + seconds;
     const startAt = Math.min(Math.max(0, scrolledSeconds), duration);
     dispatch("play", startAt);
   }
@@ -109,7 +115,7 @@
 </style>
 
 {#if cursorPosition !== null}
-<div class="cursor" style={`transform: translateX(calc(${cursorPosition}px - 50%))`}/>
+<div class="cursor" style={`transform: translateX(calc(${cursorPosition}px - 50% + 50vw))`}/>
 {/if}
 
 <div class="timestamps" bind:clientWidth on:mouseover={mouseEnter} on:mouseout|self={mouseLeave} on:mousemove={mouseMove} on:click={mouseClick}>

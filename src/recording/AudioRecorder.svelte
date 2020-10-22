@@ -250,7 +250,7 @@
     </div>
 
     <div class="script">
-      {currentLine}
+      {@html currentLine}
     </div>
   {:else if !atEnd}
     <div class="prompt">
@@ -258,7 +258,7 @@
     </div>
 
     <div class="script">
-      {prevLine}
+      {@html prevLine}
     </div>
 
     <div class="spacer"/>
@@ -268,7 +268,7 @@
     </div>
 
     <div class="script">
-      {currentLine}
+      {@html currentLine}
     </div>
   {:else}
     <div class="prompt">
@@ -276,7 +276,7 @@
     </div>
 
     <div class="script">
-      {prevLine}
+      {@html prevLine}
     </div>
 
     <div class="spacer"/>

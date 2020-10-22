@@ -1,10 +1,10 @@
 <script lang="ts">
   import { dragStart } from "../../../drag";
   import { fade } from "svelte/transition";
-  import type { PauseToken } from "../../../tokens";
+  import type { SilenceToken } from "../../../tokens";
 
   export let pixelsPerSecond: number;
-  export let token: PauseToken;
+  export let token: SilenceToken;
 
   let width: number;
   $: width = token.duration * pixelsPerSecond;

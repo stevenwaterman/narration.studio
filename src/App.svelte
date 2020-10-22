@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { TextToken, ScriptToken, TimingToken, ProcessingToken, PauseToken } from "./tokens";
+  import type { TextToken, ScriptToken, TimingToken, ProcessingToken, SilenceToken } from "./tokens";
 
   import AudioRecorder from "./recording/AudioRecorder.svelte";
   import AudioProcessor from "./editing/AudioProcessor.svelte";
@@ -10,19 +10,14 @@
   let textTokens: TextToken[];
   $: textTokens = tokens.filter(token => token.type === "TEXT") as TextToken[];
 
-  let pauseTokens: PauseToken[];
-  $: pauseTokens = tokens.filter(token => token.type === "PAUSE") as PauseToken[];
-
-  let submitted: boolean = false;
-  function submit() {
-    submitted = true;
-  }
+  let silenceTokens: SilenceToken[];
+  $: silenceTokens = tokens.filter(token => token.type === "PAUSE" || token.type === "PARAGRAPH") as SilenceToken[];
 
   let timingTokens: TimingToken[] = [];
   let data: Blob | null = null;
 
   let processingTokens: ProcessingToken[];
-  $: processingTokens = [...timingTokens, ...pauseTokens].sort((a,b) => a.idx - b.idx);
+  $: processingTokens = [...timingTokens, ...silenceTokens].sort((a,b) => a.idx - b.idx);
 </script>
 
 <style>
@@ -32,9 +27,8 @@
   }
 </style>
 
-{#if !submitted}
+{#if !tokens.length}
   <ScriptEntry bind:tokens/>
-  <button on:click={submit}>Submit</button>
 {:else if data === null}
   <AudioRecorder textTokens={textTokens} bind:timingTokens bind:data/>
 {:else}

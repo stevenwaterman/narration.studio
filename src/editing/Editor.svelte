@@ -28,22 +28,18 @@
 
   let drawTokens: DrawToken[];
   $: drawTokens = tokens.map(token => {
+    if(token.type === "PARAGRAPH") return token;
     if(token.type === "PAUSE") return token;
     return {
       type: "WAVE",
       start: token.offset,
       duration: token.duration,
-      raw: token.raw,
       idx: token.idx
     }
   });
 
   let scroll: number = 0;
   let pixelsPerSecond: number = 200;
-
-  let timelineWidth: number;
-  let timelineWidthSecs: number;
-  $: timelineWidthSecs = (timelineWidth || 0) / pixelsPerSecond;
 
   $: canvas && controller && controller.update(drawTokens, scroll, pixelsPerSecond, canvas.clientWidth, canvas.clientHeight);
   
@@ -54,8 +50,8 @@
     if (!canvas) return;
     const widthPx = canvas.clientWidth;
     const widthSecs = widthPx / pixelsPerSecond;
-    const minScroll = -0.9 * widthSecs;
-    const maxScroll =  duration - 0.1 * widthSecs;
+    const minScroll = -0.4 * widthSecs;
+    const maxScroll =  duration + 0.4 * widthSecs;
     scroll = Math.min(Math.max(minScroll, value), maxScroll)
   }
 
@@ -144,7 +140,7 @@
 <div class="container"
   on:mousemove={drag}
 >
-  <ScriptDisplay tokens={drawTokens} {scroll} {timelineWidthSecs} {cursorPositionSeconds}/>
+  <ScriptDisplay tokens={drawTokens} {scroll} {cursorPositionSeconds}/>
 
   <div class="canvasContainer"
   on:mousedown|preventDefault={dragStart({
@@ -158,10 +154,10 @@
   on:wheel|preventDefault={onWheel}
   on:contextmenu|preventDefault
   >
-    <PlayCursor bind:scroll {duration} {timelineWidthSecs} {pixelsPerSecond}/>
+    <PlayCursor bind:scroll {duration} {pixelsPerSecond}/>
     <Timestamps bind:cursorPositionSeconds {scroll} {pixelsPerSecond} {duration} on:play={e => play(tokens, e.detail)}/>
     <TokensOverlay bind:tokens {scroll} {pixelsPerSecond}  {audioDuration}/>
-    <canvas bind:this={canvas} bind:clientWidth={timelineWidth} />
+    <canvas bind:this={canvas} />
   </div>
   
   <div class="buttonRow">

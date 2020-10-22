@@ -5,7 +5,6 @@
 
   export let tokens: DrawToken[];
   export let scroll: number;
-  export let timelineWidthSecs: number;
 
   export let cursorPositionSeconds: number | null;
   
@@ -13,36 +12,41 @@
   $: playing = $audioStatusStore.type === "PLAYING";
 
   let playingCursorPositionSeconds: number | null;
-  $: playingCursorPositionSeconds = playing ? scroll + timelineWidthSecs / 2 : null;
+  $: playingCursorPositionSeconds = playing ? scroll : null;
 
   let currentTime: number | null;
   $: currentTime = playingCursorPositionSeconds === null ? cursorPositionSeconds : playingCursorPositionSeconds;
 
-  type ScriptToken = {idx: number; start: number; end: number; raw: string; newParagraph: boolean};
+  type DisplayToken = {idx: number; start: number; end: number; raw: string;};
 
-  function toScriptTokens(tokens: DrawToken[]): ScriptToken[] {
-    const output: ScriptToken[] = [];
+  function toDisplayTokens(tokens: DrawToken[]): DisplayToken[] {
+    const output: DisplayToken[] = [];
     let time = 0;
     tokens.forEach(token => {
-      output.push({
-        idx: token.idx,
-        start: time,
-        end: time + token.duration,
-        raw: token.raw,
-        newParagraph: token.type === "PAUSE" && token.newParagraph
-      });
+      if(token.type === "PARAGRAPH") {
+        output.push({
+          idx: token.idx,
+          start: time,
+          end: time + token.duration,
+          raw: token.raw,
+        });
+      } else {
+        output[output.length - 1].end += token.duration;
+      }
+      
       time += token.duration;
     })
     return output;
   }
 
-  let scriptTokens: ScriptToken[];
-  $: scriptTokens = toScriptTokens(tokens);
+  let displayTokens: DisplayToken[];
+  $: displayTokens = toDisplayTokens(tokens);
 
   let highlightedDiv: HTMLDivElement | undefined = undefined;
   $: highlightedDiv && highlightedDiv.scrollIntoView({
-    block: "center"
-  })
+    block: "center",
+    behavior: "smooth"
+  });
 </script>
 
 <style>
@@ -57,26 +61,19 @@
     border: 1px solid black;
     flex-grow: 1;
     flex-shrink: 1;
-  }
-
-  div {
-    display: inline;
-    white-space: pre;
+    user-select: all;
+    white-space: break-spaces;
   }
 </style>
 
 <p>
-  <ScriptTimestamp time={0}/>
-  {#each scriptTokens as token (token.idx)}
+  {#each displayTokens as token (token.idx)}
+    <ScriptTimestamp time={token.start}/>
     
     {#if currentTime !== null && currentTime >= token.start && currentTime < token.end}
       <div class="highlighted" bind:this={highlightedDiv}>{token.raw}</div>
     {:else}
       <div>{token.raw}</div>
-    {/if}
-
-    {#if token.newParagraph}
-      <ScriptTimestamp time={token.start}/>
     {/if}
   {/each}
 </p>

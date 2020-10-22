@@ -2,7 +2,7 @@
 import toWav from "audiobuffer-to-wav";
 import download from "downloadjs"
 import { ProcessingToken, EditorToken, AudioToken } from "../tokens";
-import { writable, Writable, Readable } from "svelte/store";
+import { writable, Writable } from "svelte/store";
 
 export const sampleRate = 44100;
 let audioContext: AudioContext | null = null;
@@ -16,6 +16,7 @@ export function getAudioContext(): AudioContext {
 export function createEditorTokens(tokens: ProcessingToken[], buffer: AudioBuffer): EditorToken[] {
   return tokens.map(token => {
     if (token.type === "PAUSE") return token;
+    if (token.type === "PARAGRAPH") return token;
 
     const offset = token.timings.start / 1000;
     const duration = (token.timings.end - token.timings.start) / 1000;
@@ -25,7 +26,6 @@ export function createEditorTokens(tokens: ProcessingToken[], buffer: AudioBuffe
       offset: offset - 0.5,
       duration: duration,
       buffer: buffer,
-      raw: token.raw,
       stop: () => {}
     };
   });
@@ -65,7 +65,7 @@ export function play(tokens: EditorToken[], startTime: number = 0): void {
   const currentTime = ctx.currentTime;
   let timeOffset = 0;
   tokens.forEach((token) => {
-    if (token.type === "PAUSE") {
+    if (token.type === "PAUSE" || token.type === "PARAGRAPH") {
       timeOffset += token.duration;
     } else {
       const finishTimeOffset = timeOffset + token.duration;
@@ -97,7 +97,7 @@ export function pause(tokens: EditorToken[]): void {
   const oldOffset = audioState.type === "PLAYING" ? audioState.offset : 0;
   const newOffset = oldOffset + getCurrentTime();
 
-  if (newOffset <= duration) {
+  if (newOffset >= duration) {
     audioStatusStore.set({type: "STOPPED"});
   } else {
     audioStatusStore.set({type: "PAUSED", offset: newOffset});
@@ -130,14 +130,13 @@ function playBuffer(ctx: BaseAudioContext, when: number, token: AudioToken, offs
 
 export async function save(tokens: EditorToken[]) {
   const duration: number = tokens.map(token => {
-    if (token.type === "PAUSE") return token.duration;
     return token.duration;
   }).reduce((a,b) => a+b, 0);
   const ctx = new OfflineAudioContext({sampleRate, length: duration * sampleRate});
 
   let currentTime = 0;
   tokens.forEach((token) => {
-    if (token.type === "PAUSE") {
+    if (token.type === "PAUSE" || token.type === "PARAGRAPH") {
       currentTime += token.duration;
     } else {
       playBuffer(ctx, currentTime, token);

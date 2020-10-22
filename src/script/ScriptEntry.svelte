@@ -1,97 +1,14 @@
 <script lang="ts">
   import type { ScriptToken } from "../tokens";
+  import { computeScriptTokens } from "./tokenizer";
 
   let script: string = "";
 
-  const delays = {
-    "\n": 0.4,
-    ".": 0.4,
-    ";": 0.2,
-    "!": 0.4,
-    "?": 0.4,
-    "-": 0.2
-  };
-  const paragraphDelay = 1;
-
-  let matches: RegExpMatchArray[];
-  $: matches = Array.from(script.trim().matchAll(/[\n.;!?-]/g));
-
-  let lineBoundaries: number[];
-  $: lineBoundaries = matches.map(match => match.index).filter(index => index !== undefined) as number[];
-
-  let allLineBoundaries: number[];
-  $: allLineBoundaries = [
-    0, ...lineBoundaries.flatMap(boundary => [boundary, boundary+1]), script.length
-  ].reduce((acc: number[], elem: number) => 
-    acc[acc.length - 1] === elem ? acc : [...acc, elem], []
-  ).sort((a,b) => a - b);
-
-  let slices: {start: number; end: number}[];
-  $: slices = allLineBoundaries
-    .reduce((acc: {start: number; end: number}[], elem: number) => 
-      [...acc, {start: acc[acc.length - 1].end, end: elem}], 
-      [{start: 0, end: 0}]
-    ).filter(slice => slice.end > slice.start);
-
-  let basicTokens: (ScriptToken | null)[];
-  $: basicTokens = slices.map(({start, end}, idx) => {
-    const raw = script.slice(start, end);
-    const trimmed = raw.trim().toLowerCase();
-    const lettersOnly = trimmed.replace(/[^a-z]/g, "");
-    if (lettersOnly) {
-      return {
-        type: "TEXT",
-        idx,
-        script: script.slice(start, end).trim(),
-        raw
-      }
-    } else {
-      return {
-        type: "PAUSE",
-        idx,
-        duration: delays[raw as keyof typeof delays],
-        raw,
-        newParagraph: false
-      }
-    }
-  })
-
-  let nonNullTokens: ScriptToken[];
-  $: nonNullTokens = basicTokens.filter(token => token !== null) as ScriptToken[];
-
-  let combinedPauses: ScriptToken[];
-  $: combinedPauses = nonNullTokens.reduce((acc: ScriptToken[], elem: ScriptToken) => {
-    if (acc.length) {
-      const last = acc[acc.length - 1];
-      if (elem.type === "PAUSE" && last.type === "PAUSE") {
-        last.duration = Math.max(last.duration, elem.duration);
-        if (last.raw.endsWith("\n") && elem.raw.endsWith("\n")) {
-          last.duration = paragraphDelay;
-          last.newParagraph = true;
-        }
-        last.raw += elem.raw;
-        return acc;
-      }
-    }
-    return [...acc, elem];
-  }, []);
-
-  let appendScript: ScriptToken[];
-  $: appendScript = combinedPauses.reduce((acc: ScriptToken[], elem: ScriptToken) => {
-    if (acc.length) {
-      const last = acc[acc.length - 1];
-      if (elem.type === "PAUSE" && last.type === "TEXT") {
-        last.script += elem.raw;
-      }
-    }
-    return [...acc, elem];
-  }, []);
-
-  let noFinalPause: ScriptToken[];
-  $: noFinalPause = appendScript.length && appendScript[appendScript.length - 1].type === "PAUSE" ? appendScript.slice(0, appendScript.length - 1) : appendScript;
+  function submit() {
+    tokens = computeScriptTokens(script);
+  }
 
   export let tokens: ScriptToken[];
-  $: tokens = noFinalPause;
 </script>
 
 <style>
@@ -103,12 +20,4 @@
 </style>
 
 <textarea bind:value={script} placeholder="Paste your script in here"/>
-<!-- <ol>
-  {#each tokens as token}
-    {#if token.type === "TEXT"}
-      <li>{token.script}</li>
-    {:else if token.type === "PAUSE"}
-      <li>&lt;{token.duration}s pause&gt;</li>
-    {/if}
-  {/each}
-</ol> -->
+<button on:click={submit}>Submit</button>

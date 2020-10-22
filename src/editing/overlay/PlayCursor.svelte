@@ -3,7 +3,6 @@
 
   export let duration: number;
   export let scroll: number;
-  export let timelineWidthSecs: number;
   export let pixelsPerSecond: number;
 
   let offset: number = 0;
@@ -15,7 +14,7 @@
     const timeDelta = (timestamp - startTime) / 1000;
     const animationDuration = duration - offset;
     const timeFrac = timeDelta / animationDuration;
-    scroll = offset + timeFrac * animationDuration - timelineWidthSecs / 2;
+    scroll = offset + timeFrac * animationDuration;
 
     if(state === "PLAYING") {
       if (timeDelta < animationDuration) requestAnimationFrame(animate);
@@ -62,7 +61,7 @@
     width: 1px;
     top: 30px;
     bottom: 0;
-    transform: translateX(-50%);
+    transform: translateX(calc(50vw - 50%));
     background-color: red;
     pointer-events: none;
     z-index: 2;

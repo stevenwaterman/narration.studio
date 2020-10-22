@@ -20,6 +20,7 @@
     display: flex;
     flex-direction: row;
     z-index: 1;
+    transform: translateX(50vw);
   }
 </style>
 
