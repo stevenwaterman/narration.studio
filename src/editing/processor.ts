@@ -24,7 +24,7 @@ export function createEditorTokens(tokens: ProcessingToken[], buffer: AudioBuffe
       type: "AUDIO",
       idx: token.idx,
       offset: offset - 0.5,
-      duration: duration,
+      duration: duration - 0.25,
       buffer: buffer,
       stop: () => {}
     };
@@ -121,11 +121,23 @@ export async function processRawAudio(audio: Blob): Promise<AudioBuffer> {
 }
 
 function playBuffer(ctx: BaseAudioContext, when: number, token: AudioToken, offset: number = 0) {
-  const source = ctx.createBufferSource();
-  source.buffer = token.buffer;
-  source.connect(ctx.destination);
-  source.start(when, token.offset + offset, token.duration - offset);
-  token.stop = () => source.stop();
+  const duration = token.duration - offset;
+
+  const sourceNode = ctx.createBufferSource();
+  sourceNode.buffer = token.buffer;
+  sourceNode.start(when, token.offset + offset, duration);
+
+  const gainNode = ctx.createGain();
+  gainNode.gain.value = 0;
+  gainNode.gain.setValueAtTime(0, when);
+  gainNode.gain.linearRampToValueAtTime(1, when + 0.05);
+  gainNode.gain.linearRampToValueAtTime(1, when + duration - 0.05);
+  gainNode.gain.linearRampToValueAtTime(0, when + duration);
+
+  sourceNode.connect(gainNode);
+  gainNode.connect(ctx.destination);
+  
+  token.stop = () => sourceNode.stop();
 }
 
 export async function save(tokens: EditorToken[]) {

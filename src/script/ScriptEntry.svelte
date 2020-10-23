@@ -12,12 +12,26 @@
 </script>
 
 <style>
-  textarea {
+  .column {
     width: 100%;
-    height: 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  textarea {
+    width: 90%;
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin: 12px;
     padding: 12px;
   }
 </style>
 
-<textarea bind:value={script} placeholder="Paste your script in here"/>
-<button on:click={submit}>Submit</button>
+<div class="column">
+  <h1>Narration.studio</h1>
+  <textarea bind:value={script} placeholder="Paste your script in here (supports markdown)"/>
+  <button on:click={submit}>Submit</button>
+</div>

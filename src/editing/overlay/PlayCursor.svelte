@@ -3,26 +3,34 @@
 
   export let duration: number;
   export let scroll: number;
+  export let setScroll: (scroll: number) => void;
   export let pixelsPerSecond: number;
 
   let offset: number = 0;
+  let animationDuration: number;
+  let running: boolean = false;
   let startTime: number | undefined;
-  function animate(timestamp: number) {
-    if (duration <= offset) return;
-    if (startTime === undefined) startTime = timestamp;
-    
-    const timeDelta = (timestamp - startTime) / 1000;
-    const animationDuration = duration - offset;
-    const timeFrac = timeDelta / animationDuration;
-    scroll = offset + timeFrac * animationDuration;
+  
+  function animateFirst(timestamp: number) {
+    animationDuration = 1000 * (duration - offset);
+    if (animationDuration <= 0) return;
+    startTime = timestamp;
 
-    if(state === "PLAYING") {
-      if (timeDelta < animationDuration) requestAnimationFrame(animate);
-      else audioStatusStore.set({type: "STOPPED"});
+    if (!running) {
+      running = true;
+      animate(timestamp);
     }
+  }
 
-    if (state !== "PLAYING") {
-      startTime = undefined;
+  function animate(timestamp: number) {
+    const addedScroll = (timestamp - (startTime as number)) / 1000;
+    setScroll(offset + addedScroll);
+
+    if(state === "PLAYING" && offset + addedScroll < duration) requestAnimationFrame(animate);
+    else {
+      if (state === "PLAYING") audioStatusStore.set({type: "STOPPED"});
+      running = false;
+      startTime = undefined
     }
   }
 
@@ -35,7 +43,7 @@
     state = status.type;
     if (status.type === "PLAYING") {
       offset = status.offset;
-      requestAnimationFrame(animate);
+      requestAnimationFrame(animateFirst);
     } else if (status.type === "PAUSED") {
       pauseOffset = status.offset;
     }

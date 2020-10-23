@@ -54,7 +54,7 @@
     background-color: rgba(255, 255, 0, 0.5);
   }
 
-  p {
+  .container {
     width: 1000px;
     padding: 10px;
     overflow-y: scroll;
@@ -66,7 +66,7 @@
   }
 </style>
 
-<p>
+<div class="container">
   {#each displayTokens as token (token.idx)}
     <ScriptTimestamp time={token.start}/>
     
@@ -76,4 +76,4 @@
       <div>{token.raw}</div>
     {/if}
   {/each}
-</p>
+</div>

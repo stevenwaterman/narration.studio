@@ -110,7 +110,9 @@
     if (analysis === null) {
       analysis = {
         transcript,
-        decision: "UNCLEAR"
+        decision: "UNCLEAR",
+        start: speechStart - speechOffset,
+        end: event.timeStamp - speechOffset
       }
     }
   }
@@ -154,17 +156,64 @@
         recognition.stop();
       }
     });
+  
+  type UnclearAnalysis = {
+    transcript: string;
+    decision: "UNCLEAR";
+    start: number;
+    end: number;
+  }
 
   let analysis: null | {
     transcript: string;
-    decision: "PREVIOUS" | "CURRENT" | "UNCLEAR" | "SHORT"
-  } = null;
+    decision: "PREVIOUS" | "CURRENT" | "SHORT"
+  } | UnclearAnalysis = null;
 
   let progress: number;
   $: progress = 100 * currentTokenNumber / textTokens.length;
 
   const tweenedProgress = tweened(progress);
   $: tweenedProgress.set(progress);
+
+  function oldLineOverride() {
+    const {start, end, transcript} = analysis as UnclearAnalysis;
+    const lastToken = timingTokens[timingTokens.length - 1];
+    lastToken.timings.start = start;
+    lastToken.timings.end = end;
+    analysis = {
+      transcript,
+      decision: "PREVIOUS"
+    };
+  }
+
+  function newLineOverride() {
+    const {start, end, transcript} = analysis as UnclearAnalysis;
+    timingTokens = [...timingTokens, {
+      ...currentToken,
+      timings: { start, end },
+      type: "TIMING"
+    }];
+    analysis = {
+      transcript,
+      decision: "CURRENT"
+    };
+    currentTokenNumber++;
+  }
+
+  let bottomPrompt: string;
+  $: bottomPrompt = currentTokenNumber === 0 ? "To begin, say:" : atEnd ? "Or if you're done, say:" : "Or say the next line to move on:";
+
+  let bottomLine: string;
+  $: bottomLine = atEnd ? "Completed" : currentLine || " ";
+
+  const decisionText: Record<"CURRENT" | "PREVIOUS" | "UNCLEAR" | "SHORT", string> = {
+    "CURRENT": "I think that was the new line.",
+    "PREVIOUS": "I think that was the old line.",
+    "UNCLEAR": "I can't tell which line that is. Try again or use the buttons below.",
+    "SHORT": "I didn't notice you start talking. Try waiting a second longer between lines."
+  };
+  let decision: string;
+  $: decision = analysis ? decisionText[analysis.decision] : "NONE"
 </script>
 
 <style>
@@ -205,7 +254,6 @@
 
   .script {
     font-size: 36px;
-    margin: 20px;
     text-align: center;
   }
 
@@ -241,54 +289,30 @@
     flex-shrink: 0;
     flex-grow: 0;
   }
+
+  .override {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .overrideButton {
+    margin: 10px;
+  }
+
+  .hidden {
+    opacity: 0;
+  }
 </style>
 
 <div class="column">
-  {#if currentTokenNumber === 0}
-    <div class="prompt">
-      To begin, say:
-    </div>
+  <div class="prompt" class:hidden={currentTokenNumber === 0}>If you didn't like your delivery of the last line, say it again:</div>
+  <div class="script" class:hidden={currentTokenNumber === 0}>{prevLine || "NONE"}</div>
 
-    <div class="script">
-      {@html currentLine}
-    </div>
-  {:else if !atEnd}
-    <div class="prompt">
-      If you didn't like your delivery of the last line, say it again:
-    </div>
+  <div class="spacer"/>
 
-    <div class="script">
-      {@html prevLine}
-    </div>
-
-    <div class="spacer"/>
-
-    <div class="prompt">
-      Or say the next line to move on:
-    </div>
-
-    <div class="script">
-      {@html currentLine}
-    </div>
-  {:else}
-    <div class="prompt">
-      If you didn't like your delivery of the last line, say it again:
-    </div>
-
-    <div class="script">
-      {@html prevLine}
-    </div>
-
-    <div class="spacer"/>
-
-    <div class="prompt">
-      Or if you're done, say:
-    </div>
-
-    <div class="script">
-      Completed
-    </div>
-  {/if}
+  <div class="prompt">{bottomPrompt}</div>
+  <div class="script">{bottomLine}</div>
 
   <div class="spacer"/>
 
@@ -297,23 +321,25 @@
     <div class="circle" class:green={hearing}/>
   </div>
 
-  {#if analysis !== null}
-    <div class="transcript">
-      I heard <b>{analysis.transcript}</b>.
-    </div>
+  <div class="transcript">
+    <span class:hidden={analysis === null}>I heard <b>{analysis ? analysis.transcript : "NONE"}</b></span>
+  </div>
 
-    <div class="decision">
-      {#if analysis && analysis.decision === "UNCLEAR"}
-        I can't tell which line that is.
-      {:else if analysis && analysis.decision === "SHORT"}
-        I didn't notice you start talking. Try waiting a second longer between lines.
-      {:else if analysis && analysis.decision === "CURRENT"}
-        I think that was the new line.
-      {:else if analysis && analysis.decision === "PREVIOUS"}
-        I think that was the old line.
+  <div class="decision" class:hidden={analysis === null}>{decision}</div>
+
+  <div class="override">
+    {#if analysis && analysis.decision === "UNCLEAR"}
+      {#if currentTokenNumber > 0}
+        <button class="overrideButton" on:click={oldLineOverride}>Old Line</button>
       {/if}
-    </div>
-  {/if}
+
+      {#if atEnd}
+        <button class="overrideButton" on:click={completed}>Completed</button>
+      {:else}
+        <button class="overrideButton" on:click={newLineOverride}>New Line</button>
+      {/if}
+    {/if}
+  </div>
 
   <div class="spacer"/>
 

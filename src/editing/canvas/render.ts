@@ -22,7 +22,7 @@ self.addEventListener('message', ({data}: Message) => {
 
 function setup({ canvas, channel }: RenderMessageCreate) {
   offscreen = canvas;
-  gl = canvas.getContext("webgl2", {preserveDrawingBuffer: true}) as WebGL2RenderingContext;
+  gl = canvas.getContext("webgl2", {preserveDrawingBuffer: true, desynchronized: false}) as WebGL2RenderingContext;
   
   vertices = preprocess(channel);
   init();
@@ -73,6 +73,7 @@ function drawWaveform({tokens, pixelsPerSecond, scroll, width, height}: RenderMe
   const minSecs = scroll - secondsPerClip;
   const maxSecs = scroll + secondsPerClip;
 
+  const drawTasks: Array<() => void> = [];
   let timecode = 0;
   for(const token of tokens) {
     const drawAtTime = Math.max(minSecs, timecode);
@@ -82,7 +83,7 @@ function drawWaveform({tokens, pixelsPerSecond, scroll, width, height}: RenderMe
     const endAdjustedDuration = Math.min(maxDuration, startAdjustedDuration);
 
     if(endAdjustedDuration > 0) {
-      setScale(pixelsPerSecond)
+      setScale(pixelsPerSecond);
 
       if(token.type === "WAVE") {
         const tokenOffset = token.start + croppedFromStart;

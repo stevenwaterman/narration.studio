@@ -41,18 +41,30 @@
   let scroll: number = 0;
   let pixelsPerSecond: number = 200;
 
-  $: canvas && controller && controller.update(drawTokens, scroll, pixelsPerSecond, canvas.clientWidth, canvas.clientHeight);
+  function redraw(drawTokens: DrawToken[], pixelsPerSecond: number, scroll: number) {
+    if (!canvas) return;
+    if (!controller) return;
+    controller.update(drawTokens, scroll, pixelsPerSecond, canvas.clientWidth, canvas.clientHeight)
+  }
+
+  $: redraw(drawTokens, pixelsPerSecond, scroll);
   
   let duration: number;
   $: duration = drawTokens.map(token => token.duration).reduce((a,b) => a+b, 0);
 
   function setScroll(value: number) {
     if (!canvas) return;
+    if (!controller) return;
+
     const widthPx = canvas.clientWidth;
+    const heightPx = canvas.clientHeight;
     const widthSecs = widthPx / pixelsPerSecond;
     const minScroll = -0.4 * widthSecs;
     const maxScroll =  duration + 0.4 * widthSecs;
-    scroll = Math.min(Math.max(minScroll, value), maxScroll)
+    scroll = Math.min(Math.max(minScroll, value), maxScroll);
+
+    
+    // (controller as RenderController).update(drawTokens, scroll, pixelsPerSecond, widthPx, heightPx);
   }
 
   function dragHandler(delta: number, startScroll: number) {
@@ -61,10 +73,15 @@
   }
 
   function onWheel(event: WheelEvent) {
+    if(!canvas) return;
+    const width = canvas.width;
+
     const {deltaX, deltaY, clientX, shiftKey} = event;
-    const oldMouseSecs = clientX / pixelsPerSecond;
+    const offsetX = clientX - width / 2;
+
+    const oldMouseSecs = offsetX / pixelsPerSecond;
     if (shiftKey) {
-      if (deltaY) setScroll(scroll + deltaY / pixelsPerSecond);
+      if (deltaY) setScroll(scroll - deltaY / pixelsPerSecond);
     } else {
       if (deltaY < 0) pixelsPerSecond *= 1.2;
       if (deltaY > 0) pixelsPerSecond /= 1.2;
@@ -72,7 +89,7 @@
     }
     if (deltaX) setScroll(scroll - deltaX / pixelsPerSecond)
     
-    const newMouseSecs = clientX / pixelsPerSecond;
+    const newMouseSecs = offsetX / pixelsPerSecond;
     const requiredScrolling = newMouseSecs - oldMouseSecs;
     setScroll(scroll - requiredScrolling);
   }
@@ -135,6 +152,21 @@
     user-select: none;
     cursor: pointer;
   }
+
+  .instruction {
+    position: fixed;
+    bottom: 0;
+    margin: 4px;
+    font-size: 18px;
+  }
+
+  .left {
+    left: 0;
+  }
+
+  .right {
+    right: 0;
+  }
 </style>
 
 <div class="container"
@@ -154,7 +186,7 @@
   on:wheel|preventDefault={onWheel}
   on:contextmenu|preventDefault
   >
-    <PlayCursor bind:scroll {duration} {pixelsPerSecond}/>
+    <PlayCursor {scroll} {duration} {pixelsPerSecond} {setScroll}/>
     <Timestamps bind:cursorPositionSeconds {scroll} {pixelsPerSecond} {duration} on:play={e => play(tokens, e.detail)}/>
     <TokensOverlay bind:tokens {scroll} {pixelsPerSecond}  {audioDuration}/>
     <canvas bind:this={canvas} />
@@ -165,5 +197,8 @@
     <div class="button" disabled={$audioStatusStore.type !== "STOPPED"} on:click={() => stop(tokens)}>⏹️</div>
     <div class="button" on:click={() => save(tokens)}>↓</div>
   </div>
+
+  <div class="instruction left">Left-click drag or shift-scroll to pan</div>
+  <div class="instruction right">Right-click drag to adjust offset and duration</div>
 </div>
 <svelte:body on:keypress={keypress}/>
