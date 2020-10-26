@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { DrawToken } from "../tokens";
+  import type { EditorToken } from "../tokens";
   import { audioStatusStore } from "./processor";
   import ScriptTimestamp from "./ScriptTimestamp.svelte";
 
-  export let tokens: DrawToken[];
+  export let tokens: EditorToken[];
   export let scroll: number;
 
   export let cursorPositionSeconds: number | null;
@@ -19,7 +19,7 @@
 
   type DisplayToken = {idx: number; start: number; end: number; raw: string;};
 
-  function toDisplayTokens(tokens: DrawToken[]): DisplayToken[] {
+  function toDisplayTokens(tokens: EditorToken[]): DisplayToken[] {
     const output: DisplayToken[] = [];
     let time = 0;
     tokens.forEach(token => {
@@ -45,7 +45,7 @@
   let highlightedDiv: HTMLDivElement | undefined = undefined;
   $: highlightedDiv && highlightedDiv.scrollIntoView({
     block: "center",
-    behavior: "smooth"
+    behavior: "auto"
   });
 </script>
 

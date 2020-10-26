@@ -23,7 +23,7 @@ export function createEditorTokens(tokens: ProcessingToken[], buffer: AudioBuffe
     return {
       type: "AUDIO",
       idx: token.idx,
-      offset: offset - 0.5,
+      start: offset - 0.5,
       duration: duration - 0.25,
       buffer: buffer,
       stop: () => {}
@@ -125,7 +125,7 @@ function playBuffer(ctx: BaseAudioContext, when: number, token: AudioToken, offs
 
   const sourceNode = ctx.createBufferSource();
   sourceNode.buffer = token.buffer;
-  sourceNode.start(when, token.offset + offset, duration);
+  sourceNode.start(when, token.start + offset, duration);
 
   const gainNode = ctx.createGain();
   gainNode.gain.value = 0;

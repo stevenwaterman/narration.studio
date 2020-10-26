@@ -29,7 +29,7 @@ export type TimingToken = BaseToken<"TIMING"> & Omit<TextToken, "type"> & {
 
 export type ProcessingToken = TimingToken | SilenceToken;
 
-export type AudioToken = BaseToken<"AUDIO"> & {offset: number; duration: number; buffer: AudioBuffer; stop: () => void;};
+export type AudioToken = BaseToken<"AUDIO"> & {start: number; duration: number; buffer: AudioBuffer; stop: () => void;};
 
 export type EditorToken = SilenceToken | AudioToken;
 

@@ -48,17 +48,17 @@
 
     analysis = null;
 
+    if (atEnd && transcript.toLowerCase() === "completed") {
+      completed();
+      return;
+    }
+
     const duration = event.timeStamp - speechStart;
     if (duration < 500) {
       analysis = {
         transcript,
         decision: "SHORT"
       };
-      return;
-    }
-
-    if (atEnd && transcript.toLowerCase() === "completed") {
-      completed();
       return;
     }
 

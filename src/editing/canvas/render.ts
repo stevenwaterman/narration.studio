@@ -1,5 +1,5 @@
 import { sampleRate } from "../processor";
-import { RenderMessage, RenderMessageCreate, RenderMessageDraw } from "./renderController";
+import { RenderMessage, RenderMessageCreate, RenderParams } from "./renderController";
 
 let offscreen: OffscreenCanvas;
 let gl: WebGL2RenderingContext;
@@ -11,18 +11,37 @@ type Message = {
 };
 
 const renderPixelSize = 1;
+let renderParams: RenderParams = null as any;
 
 self.addEventListener('message', ({data}: Message) => {
   if (data.type === "create") {
     setup(data);
-  } else if (data.type === "draw") {
-    drawWaveform(data);
+  } else {
+    if(data.type === "update_scroll") {
+      renderParams.scroll = data.scroll;
+    } else if(data.type === "update_zoom") {
+      renderParams.pixelsPerSecond = data.pixelsPerSecond;
+      renderParams.scroll = data.scroll;
+    } else if(data.type === "update_size") {
+      renderParams.width = data.width;
+      renderParams.height = data.height;
+    } else {
+      const {idx, start, duration} = data.token;
+      const token = renderParams.tokens[idx];
+      token.duration = duration;
+      if (token.type === "AUDIO" && start !== undefined) {
+        token.start = start;
+      }
+    }
+
+    drawWaveform();
   }
 });
 
-function setup({ canvas, channel }: RenderMessageCreate) {
+function setup({ canvas, channel, initialValues }: RenderMessageCreate) {
+  renderParams = initialValues;
   offscreen = canvas;
-  gl = canvas.getContext("webgl2", {preserveDrawingBuffer: true, desynchronized: false}) as WebGL2RenderingContext;
+  gl = canvas.getContext("webgl2", {preserveDrawingBuffer: true, desynchronized: true}) as WebGL2RenderingContext;
   
   vertices = preprocess(channel);
   init();
@@ -59,7 +78,9 @@ function preprocess(channel: Float32Array): Float32Array {
   return output;
 }
 
-function drawWaveform({tokens, pixelsPerSecond, scroll, width, height}: RenderMessageDraw): void {
+function drawWaveform(): void {
+  const {tokens, pixelsPerSecond, scroll, width, height} = renderParams;
+
   offscreen.width = width;
   offscreen.height = height;
   gl.viewport(0, 0, width, height);
@@ -85,7 +106,7 @@ function drawWaveform({tokens, pixelsPerSecond, scroll, width, height}: RenderMe
     if(endAdjustedDuration > 0) {
       setScale(pixelsPerSecond);
 
-      if(token.type === "WAVE") {
+      if(token.type === "AUDIO") {
         const tokenOffset = token.start + croppedFromStart;
         drawSection(drawAtTime, tokenOffset, endAdjustedDuration, scroll);
       }

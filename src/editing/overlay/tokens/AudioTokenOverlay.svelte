@@ -1,11 +1,14 @@
 <script lang="ts">
   import type { AudioToken } from "../../../tokens";
   import { fade } from "svelte/transition";
-import { dragStart } from "../../../drag";
+  import { dragStart } from "../../../drag";
 
   export let pixelsPerSecond: number;
   export let token: AudioToken;
   export let audioDuration: number;
+  export let left: number;
+  export let setToken: (token: AudioToken) => void;
+
 
   let width: number;
   $: width = token.duration * pixelsPerSecond;
@@ -24,15 +27,16 @@ import { dragStart } from "../../../drag";
     const minOffset = 0;
     const maxOffset = audioDuration - token.duration;
     if (newOffset < minOffset) {
-      token.offset = minOffset;
+      token.start = minOffset;
       clamped = "LEFT";
     } else if (newOffset > maxOffset) {
-      token.offset = maxOffset;
+      token.start = maxOffset;
       clamped = "RIGHT";
     } else {
-      token.offset = newOffset;
+      token.start = newOffset;
       clamped = null;
     }
+    setToken(token);
   }
 
   function stretchHandler(delta: number, originalDuration: number) {
@@ -40,7 +44,7 @@ import { dragStart } from "../../../drag";
 
     const newDuration = originalDuration + draggedSeconds;
     const minDuration = 0.1;
-    const maxDuration = audioDuration - token.offset;
+    const maxDuration = audioDuration - token.start;
     if (newDuration <= minDuration) {
       token.duration = minDuration;
       clamped = "LEFT";
@@ -51,62 +55,63 @@ import { dragStart } from "../../../drag";
       token.duration = newDuration;
       clamped = null;
     }
+    setToken(token);
   }
-  </script>
-  
-  <style>
-    .panRegion {
-      flex-grow: 1;
-      flex-shrink: 1;
-      cursor: ew-resize;
-    }
+</script>
 
-    .stretchRegion {
-      width: 40px;
-      max-width: 50%;
-      cursor: e-resize;
-    }
-    .stretchRegion:hover {
-      background-color: rgba(0, 0, 0, 0.2);
-    }
+<style>
+  .panRegion {
+    flex-grow: 1;
+    flex-shrink: 1;
+    cursor: ew-resize;
+  }
 
-    .container {
-      display: flex;
-      flex-direction: row;
-      flex-grow: 0;
-      flex-shrink: 0;
-      
-      position: relative;
-      box-sizing: border-box;
-    }
+  .stretchRegion {
+    width: 40px;
+    max-width: 50%;
+    cursor: e-resize;
+  }
+  .stretchRegion:hover {
+    background-color: rgba(0, 0, 0, 0.2);
+  }
 
-    .leftClamp {
-      position: absolute;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      width: 10px;
-      
-      pointer-events: none;
-      background-image: linear-gradient(90deg, rgba(255,0,0,1) 0%, rgba(255,0,0,0) 100%);
-    }
-    .rightClamp {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 10px;
+  .audioTokenContainer {
+    display: flex;
+    flex-direction: row;
+    
+    position: absolute;
+    box-sizing: border-box;
+    height: 100%;
+  }
 
-      pointer-events: none;
-      background-image: linear-gradient(90deg, rgba(255,0,0,0) 0%, rgba(255,0,0,1) 100%);
-    }
-  </style>
-  
-  <div class="container" style={`width:${width}px`}>
+  .leftClamp {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 10px;
+    
+    pointer-events: none;
+    background-image: linear-gradient(90deg, rgba(255,0,0,1) 0%, rgba(255,0,0,0) 100%);
+  }
+  .rightClamp {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 10px;
+
+    pointer-events: none;
+    background-image: linear-gradient(90deg, rgba(255,0,0,0) 0%, rgba(255,0,0,1) 100%);
+  }
+</style>
+
+{#if width > 10}
+  <div class="audioTokenContainer" style={`width: ${width}px; left: ${left}px;`}>
     <div class="panRegion" on:mousedown|preventDefault={dragStart({
-      button: "RIGHT", 
-      onDrag: panHandler, 
-      otherInfoGetter: () => token.offset, 
+      button: "RIGHT",
+      onDrag: panHandler,
+      otherInfoGetter: () => token.start,
       onEnd: () => clamped = null
     })}/>
 
@@ -125,3 +130,4 @@ import { dragStart } from "../../../drag";
       <div class="rightClamp" transition:fade/>
     {/if}
   </div>
+{/if}

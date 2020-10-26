@@ -1,12 +1,13 @@
 <script lang="ts">
   import { audioStatusStore, play, sampleRate, save, stop, togglePause } from "./processor";
-  import type { DrawToken, EditorToken } from "../tokens";
+  import type { EditorToken } from "../tokens";
   import RenderController from "./canvas/renderController";
   import Timestamps from "./overlay/Timestamps.svelte";
   import PlayCursor from "./overlay/PlayCursor.svelte";
   import TokensOverlay from "./overlay/tokens/TokensOverlay.svelte";
   import { dragStart, drag, dragEnd } from "../drag";
   import ScriptDisplay from "./ScriptDisplay.svelte";
+  import { onMount } from "svelte";
 
   export let tokens: EditorToken[];
   export let buffer: AudioBuffer;
@@ -14,57 +15,40 @@
   let audioDuration: number;
   $: audioDuration = buffer.length / sampleRate;
 
-  function stopOnChange(tokens: EditorToken[]) {
-    stop(tokens);
-  }
+  let canvas: HTMLCanvasElement;
+  let controller: RenderController | undefined = undefined;
 
-  $: stopOnChange(tokens);
-
-  let canvas: HTMLCanvasElement | undefined;
-  let offscreen: OffscreenCanvas | undefined;
-  $: offscreen = canvas ? canvas.transferControlToOffscreen() : undefined;
-  let controller: RenderController | undefined;
-  $: controller = offscreen ? new RenderController(offscreen, buffer) : undefined;
-
-  let drawTokens: DrawToken[];
-  $: drawTokens = tokens.map(token => {
-    if(token.type === "PARAGRAPH") return token;
-    if(token.type === "PAUSE") return token;
-    return {
-      type: "WAVE",
-      start: token.offset,
-      duration: token.duration,
-      idx: token.idx
-    }
-  });
-
+  let containerWidth: number = 0;
+  $: canvasWidth = containerWidth - 30;
+  let canvasHeight: number = 0;
   let scroll: number = 0;
   let pixelsPerSecond: number = 200;
 
-  function redraw(drawTokens: DrawToken[], pixelsPerSecond: number, scroll: number) {
-    if (!canvas) return;
-    if (!controller) return;
-    controller.update(drawTokens, scroll, pixelsPerSecond, canvas.clientWidth, canvas.clientHeight)
-  }
+  onMount(() => {
+    const offscreen = (canvas as HTMLCanvasElement).transferControlToOffscreen();
+    controller = new RenderController(offscreen, buffer, tokens, scroll, pixelsPerSecond, canvasWidth, canvasHeight);
+  });
 
-  $: redraw(drawTokens, pixelsPerSecond, scroll);
-  
+  let canvasWidthSecs: number;
+  $: canvasWidthSecs = canvasWidth / pixelsPerSecond;
+
+  let canvasStartSecs: number;
+  $: canvasStartSecs = scroll - canvasWidthSecs / 2;
+
+  let canvasEndSecs: number;
+  $: canvasEndSecs = scroll + canvasWidthSecs / 2;
+
+  let canvasBounds: {start: number; end: number};
+  $: canvasBounds = {start: canvasStartSecs, end: canvasEndSecs};
+
   let duration: number;
-  $: duration = drawTokens.map(token => token.duration).reduce((a,b) => a+b, 0);
+  $: duration = tokens.map(token => token.duration).reduce((a,b) => a+b, 0);
 
   function setScroll(value: number) {
-    if (!canvas) return;
-    if (!controller) return;
-
-    const widthPx = canvas.clientWidth;
-    const heightPx = canvas.clientHeight;
-    const widthSecs = widthPx / pixelsPerSecond;
+    const widthSecs = canvasWidth / pixelsPerSecond;
     const minScroll = -0.4 * widthSecs;
     const maxScroll =  duration + 0.4 * widthSecs;
     scroll = Math.min(Math.max(minScroll, value), maxScroll);
-
-    
-    // (controller as RenderController).update(drawTokens, scroll, pixelsPerSecond, widthPx, heightPx);
   }
 
   function dragHandler(delta: number, startScroll: number) {
@@ -101,6 +85,45 @@
       togglePause(tokens);
     }
   }
+
+  function timechange(event: CustomEvent) {
+    const newTime: number = event.detail;
+    setScroll(newTime);
+  }
+
+  function renderScrollChange(scroll: number) {
+    if(controller) {
+      controller.updateScroll(scroll);
+    }
+  }
+  $: renderScrollChange(scroll);
+
+  function renderZoomChange(pixelsPerSecond: number) {
+    if(controller) {
+      controller.updateZoom(pixelsPerSecond, scroll);
+    }
+  }
+  $: renderZoomChange(pixelsPerSecond);
+
+  function renderSizeChange(width: number, height: number) {
+    console.log("size change");
+    if(controller) {
+      controller.updateSize(width, height);
+    }
+  }
+  $: renderSizeChange(canvasWidth, canvasHeight);
+
+  function renderTokenChange(token: EditorToken) {
+    if(controller) {
+      controller.updateToken(token);
+    }
+  }
+
+  function setToken(token: EditorToken) {
+    tokens[token.idx] = token;
+    renderTokenChange(token);
+    stop(tokens);
+  }
 </script>
 
 <style>
@@ -115,7 +138,7 @@
 
   .canvasContainer {
     position: relative;
-    height: 50vh;
+    min-height: 40vh;
     width: 100%;
     flex-grow: 1;
     flex-shrink: 1;
@@ -172,7 +195,7 @@
 <div class="container"
   on:mousemove={drag}
 >
-  <ScriptDisplay tokens={drawTokens} {scroll} {cursorPositionSeconds}/>
+  <ScriptDisplay tokens={tokens} {scroll} {cursorPositionSeconds}/>
 
   <div class="canvasContainer"
   on:mousedown|preventDefault={dragStart({
@@ -185,11 +208,13 @@
   on:mouseout|preventDefault|self={dragEnd}
   on:wheel|preventDefault={onWheel}
   on:contextmenu|preventDefault
+  bind:clientWidth={canvasWidth}
+  bind:clientHeight={canvasHeight}
   >
-    <PlayCursor {scroll} {duration} {pixelsPerSecond} {setScroll}/>
+    <PlayCursor {scroll} {duration} {pixelsPerSecond} on:timechange={timechange}/>
     <Timestamps bind:cursorPositionSeconds {scroll} {pixelsPerSecond} {duration} on:play={e => play(tokens, e.detail)}/>
-    <TokensOverlay bind:tokens {scroll} {pixelsPerSecond}  {audioDuration}/>
-    <canvas bind:this={canvas} />
+    <TokensOverlay {tokens} {scroll} {pixelsPerSecond}  {audioDuration} {canvasBounds} {setToken}/>
+    <canvas bind:this={canvas}/>
   </div>
   
   <div class="buttonRow">

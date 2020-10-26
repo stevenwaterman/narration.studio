@@ -1,35 +1,54 @@
 <script lang="ts">
   import type { EditorToken } from "../../../tokens";
   import AudioTokenOverlay from "./AudioTokenOverlay.svelte";
-  import PauseTokenOverlay from "./PauseTokenOverlay.svelte";
+  import SilenceTokenOverlay from "./SilenceTokenOverlay.svelte";
 
   export let tokens: EditorToken[];
   export let pixelsPerSecond: number;
   export let scroll: number;
   export let audioDuration: number;
+  export let canvasBounds: {start: number; end: number};
+  export let setToken: (token: EditorToken) => void;
 
-  let left: number;
-  $: left = -scroll * pixelsPerSecond;
+  function toStartTokens(tokens: EditorToken[], {start, end}: {start: number; end: number}): Array<{token: EditorToken; left: number}> {
+    let timecode = 0;
+    const output: Array<{token: EditorToken; left: number}> = [];
+    for(const token of tokens) {
+      if(timecode >= end) return output;
+      if(timecode >= start && timecode < end) {
+        output.push({
+          token,
+          left: (timecode - scroll) * pixelsPerSecond
+        });
+      }
+      timecode += token.duration;
+    }
+    return output;
+  }
+
+  let startTokens: Array<{token: EditorToken; left: number}>;
+  $: startTokens = toStartTokens(tokens, canvasBounds);
 </script>
 
 <style>
-  .container {
+  .tokensContainer {
     position: absolute;
     top: 30px;
     bottom: 0;
-    display: flex;
+    left: 0;
+    right: 0;
     flex-direction: row;
     z-index: 1;
     transform: translateX(50vw);
   }
 </style>
 
-<div class="container" style={`left: ${left}px;`}>
-  {#each tokens as token}
+<div class="tokensContainer">
+  {#each startTokens as {token, left}}
     {#if token.type === "AUDIO"}
-      <AudioTokenOverlay bind:token pixelsPerSecond={pixelsPerSecond} audioDuration={audioDuration}/>
+      <AudioTokenOverlay {token} {pixelsPerSecond} {audioDuration} {left} {setToken}/>
     {:else}
-      <PauseTokenOverlay bind:token pixelsPerSecond={pixelsPerSecond}/>
+      <SilenceTokenOverlay {token} {pixelsPerSecond} {left} {setToken}/>
     {/if}
   {/each}
 </div>

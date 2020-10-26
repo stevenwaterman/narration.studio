@@ -32,5 +32,5 @@
 {:else if data === null}
   <AudioRecorder textTokens={textTokens} bind:timingTokens bind:data/>
 {:else}
-  <AudioProcessor tokens={processingTokens} data={data}/>
+  <AudioProcessor tokens={processingTokens} {data}/>
 {/if}

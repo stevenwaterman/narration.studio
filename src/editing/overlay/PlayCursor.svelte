@@ -1,9 +1,10 @@
 <script lang="ts">
+import { createEventDispatcher } from "svelte";
+
   import { audioStatusStore } from "../processor";
 
   export let duration: number;
   export let scroll: number;
-  export let setScroll: (scroll: number) => void;
   export let pixelsPerSecond: number;
 
   let offset: number = 0;
@@ -22,15 +23,19 @@
     }
   }
 
+  const dispatch = createEventDispatcher();
+
   function animate(timestamp: number) {
     const addedScroll = (timestamp - (startTime as number)) / 1000;
-    setScroll(offset + addedScroll);
+    const newScroll = offset + addedScroll;
+    dispatch("timechange", newScroll);
 
-    if(state === "PLAYING" && offset + addedScroll < duration) requestAnimationFrame(animate);
+
+    if(state === "PLAYING" && newScroll < duration) requestAnimationFrame(animate);
     else {
       if (state === "PLAYING") audioStatusStore.set({type: "STOPPED"});
       running = false;
-      startTime = undefined
+      startTime = undefined;
     }
   }
 
