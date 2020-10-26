@@ -8,9 +8,11 @@
   import { dragStart, drag, dragEnd } from "../drag";
   import ScriptDisplay from "./ScriptDisplay.svelte";
   import { onMount } from "svelte";
+  import { saveChangedToken, saveTokens } from "./persistence";
 
   export let tokens: EditorToken[];
   export let buffer: AudioBuffer;
+  console.log({tokens, buffer});
 
   let audioDuration: number;
   $: audioDuration = buffer.length / sampleRate;
@@ -27,6 +29,7 @@
   onMount(() => {
     const offscreen = (canvas as HTMLCanvasElement).transferControlToOffscreen();
     controller = new RenderController(offscreen, buffer, tokens, scroll, pixelsPerSecond, canvasWidth, canvasHeight);
+    saveTokens(tokens);
   });
 
   let canvasWidthSecs: number;
@@ -106,7 +109,6 @@
   $: renderZoomChange(pixelsPerSecond);
 
   function renderSizeChange(width: number, height: number) {
-    console.log("size change");
     if(controller) {
       controller.updateSize(width, height);
     }
@@ -122,7 +124,9 @@
   function setToken(token: EditorToken) {
     tokens[token.idx] = token;
     renderTokenChange(token);
+    saveChangedToken(token);
     stop(tokens);
+    
   }
 </script>
 

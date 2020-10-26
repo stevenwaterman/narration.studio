@@ -117,7 +117,8 @@ export function togglePause(tokens: EditorToken[]): void {
 export async function processRawAudio(audio: Blob): Promise<AudioBuffer> {
   const ctx = getAudioContext();
   const arrayBuffer: ArrayBuffer = await audio.arrayBuffer();
-  return await ctx.decodeAudioData(arrayBuffer);
+  const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+  return audioBuffer;
 }
 
 function playBuffer(ctx: BaseAudioContext, when: number, token: AudioToken, offset: number = 0) {

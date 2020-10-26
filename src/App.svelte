@@ -1,36 +1,46 @@
 <script lang="ts">
-  import type { TextToken, ScriptToken, TimingToken, ProcessingToken, SilenceToken } from "./tokens";
+  import { canLoad } from "./editing/persistence";
+  import LoadedSetup from "./LoadedSetup.svelte";
+  import NewSetup from "./NewSetup.svelte";
 
-  import AudioRecorder from "./recording/AudioRecorder.svelte";
-  import AudioProcessor from "./editing/AudioProcessor.svelte";
-  import ScriptEntry from "./script/ScriptEntry.svelte";
-
-  let tokens: ScriptToken[] = [];
-
-  let textTokens: TextToken[];
-  $: textTokens = tokens.filter(token => token.type === "TEXT") as TextToken[];
-
-  let silenceTokens: SilenceToken[];
-  $: silenceTokens = tokens.filter(token => token.type === "PAUSE" || token.type === "PARAGRAPH") as SilenceToken[];
-
-  let timingTokens: TimingToken[] = [];
-  let data: Blob | null = null;
-
-  let processingTokens: ProcessingToken[];
-  $: processingTokens = [...timingTokens, ...silenceTokens].sort((a,b) => a.idx - b.idx);
+  let loadFromSave: boolean | null = null;
 </script>
 
 <style>
-  :global(body) {
-    overflow: hidden;
-    padding: 0;
+  .column {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    height: 100%;
+    width: 100%;
   }
 </style>
 
-{#if !tokens.length}
-  <ScriptEntry bind:tokens/>
-{:else if data === null}
-  <AudioRecorder textTokens={textTokens} bind:timingTokens bind:data/>
-{:else}
-  <AudioProcessor tokens={processingTokens} {data}/>
-{/if}
+<div class="column">
+  {#if loadFromSave === null}
+    <h1>Narration.studio</h1>
+    {#await canLoad()}
+      Checking for save data
+    {:then dataExists}
+      {#if dataExists}
+        <h2>Saved data found</h2>
+        <div class="buttonRow">
+          <button on:click={() => loadFromSave = false}>Start Again</button>
+          <button on:click={() => loadFromSave = true}>Load from Save</button>
+        </div>
+      {:else}
+        <h2>No saved data found</h2>
+        <div class="buttonRow">
+          <button on:click={() => loadFromSave = false}>Start New</button>
+        </div>
+      {/if}
+    {:catch error}
+      {error}
+    {/await}
+  {:else if loadFromSave}
+    <LoadedSetup/>
+  {:else}
+    <NewSetup/>
+  {/if}
+</div>
