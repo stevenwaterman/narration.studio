@@ -72,7 +72,7 @@
       if (deltaY > 0) pixelsPerSecond /= 1.2;
       pixelsPerSecond = Math.min(100 * 1000, pixelsPerSecond);
     }
-    if (deltaX) setScroll(scroll - deltaX / pixelsPerSecond)
+    if (deltaX) setScroll(scroll + deltaX / pixelsPerSecond)
     
     const newMouseSecs = offsetX / pixelsPerSecond;
     const requiredScrolling = newMouseSecs - oldMouseSecs;

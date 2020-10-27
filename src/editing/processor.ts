@@ -23,17 +23,17 @@ export async function createEditorTokens(tokens: ProcessingToken[], buffer: Audi
 
     // Start with Speech Recognition API's best guess adjusted slightly for latency
     const originalStartSecs = token.timings.start / 1000;
-    let startSearchSample = Math.max(0, Math.round((originalStartSecs - 0.1) * sampleRate));
+    let startSearchSample = Math.max(0, Math.round((originalStartSecs - 0.5) * sampleRate));
 
     const originalEndSecs = token.timings.end / 1000;
-    let endSearchSample = Math.min(envelopeChannel.length, Math.round((originalEndSecs - 0.5) * sampleRate));
+    let endSearchSample = Math.min(envelopeChannel.length, Math.round((originalEndSecs + 0.5) * sampleRate));
 
     let maxVolume = 0;
     for(let i = startSearchSample; i < endSearchSample; i++) {
       maxVolume = Math.max(maxVolume, envelopeChannel[i]);
     }
     const speechThreshold = 0.2 * maxVolume;
-    const silenceThreshold = 0.1 * maxVolume;
+    const silenceThreshold = 0.03 * maxVolume;
     const silenceCount = 0.1 * sampleRate; // 0.1 seconds of silence
 
     // Expand until you hit silence (often immediately)
@@ -53,7 +53,6 @@ export async function createEditorTokens(tokens: ProcessingToken[], buffer: Audi
         }
       }
     }
-    
   
     {
       let count = 0;
@@ -70,7 +69,6 @@ export async function createEditorTokens(tokens: ProcessingToken[], buffer: Audi
         }
       }
     }
-    
 
     // Move in to find speech
     // To handle case where speech recognition ended late
@@ -183,7 +181,7 @@ export function play(tokens: EditorToken[], startTime: number = 0): void {
         playBuffer(ctx, currentTime + timeOffset - startTime, token);
       } else if (finishTimeOffset > startTime) {
         const additionalOffset = startTime - timeOffset;
-        playBuffer(ctx, currentTime + timeOffset, token, additionalOffset);
+        playBuffer(ctx, currentTime + timeOffset - startTime, token, additionalOffset);
       }
       timeOffset = finishTimeOffset;
     }

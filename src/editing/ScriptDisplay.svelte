@@ -63,6 +63,8 @@
     flex-shrink: 1;
     user-select: all;
     white-space: break-spaces;
+    margin-top: 20px;
+    margin-bottom: 20px;
   }
 </style>
 

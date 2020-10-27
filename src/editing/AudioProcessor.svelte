@@ -11,21 +11,21 @@
 </script>
 
 {#await processRawAudio(data)}
-  Processing Microphone Audio...
+  <h2>Processing Microphone Audio...</h2>
 {:then buffer}
   {#await createEditorTokens(processingTokens, buffer)}
-    Processing Timings...
+    <h2>Processing Timings...</h2>
   {:then tokens}
     {#await Promise.all([saveAudio(data), saveTokens(tokens)])}
-      Saving...
+      <h2>Saving...</h2>
     {:then _}
       <Editor {tokens} {buffer}/>
     {:catch error}
-      {error}
+      <h2>{error}</h2>
     {/await}
   {:catch error}
-    {error}
+    <h2>{error}</h2>
   {/await}
 {:catch error}
-  {error}
+  <h2>{error}</h2>
 {/await}

@@ -32,6 +32,7 @@
 
   let speechOffset: number = 0;
   let speechStart: number = 0;
+  let speechEnd: number = 0;
 
   //@ts-ignore
   const recognition: SpeechRecognition = new webkitSpeechRecognition();
@@ -42,6 +43,12 @@
 
   recognition.onresult = (event: SpeechRecognitionEvent) => {
     recognition.stop();
+
+    // In case the speechEnd event didn't fire
+    if(speechEnd <= speechStart) {
+      speechEnd = event.timeStamp;
+    }
+
     const results = event.results;
     const item = results.item(0);
     const {transcript, confidence} = item.item(0);
@@ -53,7 +60,7 @@
       return;
     }
 
-    const duration = event.timeStamp - speechStart;
+    const duration = speechEnd - speechStart;
     if (duration < 500) {
       analysis = {
         transcript,
@@ -82,7 +89,7 @@
         if (prevDistanceUpperBound !== undefined && prevDistanceUpperBound < 0.5) {
           const lastToken = timingTokens[timingTokens.length - 1];
           lastToken.timings.start = speechStart - speechOffset;
-          lastToken.timings.end = event.timeStamp - speechOffset;
+          lastToken.timings.end = speechEnd - speechOffset;
           analysis = {
             transcript,
             decision: "PREVIOUS"
@@ -94,7 +101,7 @@
             ...currentToken,
             timings: {
               start: speechStart - speechOffset,
-              end: event.timeStamp - speechOffset
+              end: speechEnd - speechOffset
             },
             type: "TIMING"
           }];
@@ -112,16 +119,18 @@
         transcript,
         decision: "UNCLEAR",
         start: speechStart - speechOffset,
-        end: event.timeStamp - speechOffset
+        end: speechEnd - speechOffset
       }
     }
   }
 
   let listening: boolean = false;
   let hearing: boolean = false;
-  recognition.onerror = console.log;
+  recognition.onerror = (event: Event) => {
+    console.log("Speech recognition error: ", event);
+    recognition.stop();
+  }
   recognition.onstart = (event: Event) => {
-    listening = true;
     if (speechOffset === 0) {
       speechOffset = event.timeStamp;
     }
@@ -131,11 +140,20 @@
     hearing = false;
     recognition.start();
   }
+  recognition.onaudiostart = () => {
+    listening = true;
+  }
+  recognition.onaudioend = () => {
+    listening = false;
+  }
   recognition.onspeechstart = (event) => {
     speechStart = event.timeStamp;
     hearing = true;
   }
-  recognition.onspeechend = () => hearing = false;
+  recognition.onspeechend = (event) => {
+    speechEnd = event.timeStamp;
+    hearing = false;
+  }
 
   onMount(() => recognition.start());
 
@@ -246,6 +264,7 @@
     align-items: center;
     height: 100%;
     width: 100%;
+    text-align: center;
   }
 
   .prompt {
@@ -255,17 +274,16 @@
 
   .script {
     font-size: 36px;
-    text-align: center;
   }
 
   .transcript {
     font-size: 20px;
-    margin: 20px
+    margin: 20px;
   }
 
   .decision {
     font-size: 20px;
-    margin: 20px
+    margin: 20px;
   }
 
   .spacer {
