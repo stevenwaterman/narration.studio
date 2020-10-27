@@ -10,7 +10,6 @@ type Message = {
   data: RenderMessage
 };
 
-const renderPixelSize = 1;
 let renderParams: RenderParams = null as any;
 
 self.addEventListener('message', ({data}: Message) => {
@@ -48,33 +47,15 @@ function setup({ canvas, channel, initialValues }: RenderMessageCreate) {
 }
 
 function preprocess(channel: Float32Array): Float32Array {
-  const vertices = channel.length / renderPixelSize;
-  const outputLength = vertices * 2;
+  const outputLength = channel.length * 2;
   const output = new Float32Array(outputLength);
 
-  for(let i = 0; i < vertices; i++) {
-    let sum = 0;
-    let count = 0;
-
-    for(let j = 0; j < renderPixelSize; j++) {
-      const idx = i * renderPixelSize + j;
-      if (idx < channel.length) {
-        sum += channel[idx];
-        count++;
-      }
-    }
-
-    const xSamples = i * renderPixelSize;
-    const xSeconds = xSamples / sampleRate;
-
+  for(let i = 0; i < channel.length; i++) {
     const idx = i*2;
-    output[idx] = xSeconds;
-    output[idx + 1] = sum / count;
+    output[idx] = i / sampleRate;
+    output[idx + 1] = channel[i];
   }
 
-  let peak = 0;
-  for(let i = 1; i < output.length; i += 2) peak = Math.max(peak, Math.abs(output[i]));
-  for(let i = 1; i < output.length; i += 2) output[i] /= peak;
   return output;
 }
 
@@ -119,15 +100,13 @@ function drawWaveform(): void {
 
 function setScale(pixelsPerSecond: number) {
   const lineCount = vertices.length / 2;
-  const sampleCount = lineCount * renderPixelSize;
-  const totalDuration = sampleCount / sampleRate;
+  const totalDuration = lineCount / sampleRate;
 
   const pixelsPerClip = offscreen.width / 2;
   const totalClip = lineCount / pixelsPerClip;
   const secondsToClipScale = totalClip / totalDuration;
 
-  const basePPS = sampleRate / renderPixelSize;
-  const displayScale = pixelsPerSecond / basePPS;
+  const displayScale = pixelsPerSecond / sampleRate;
 
   const scale = secondsToClipScale * displayScale;
 
@@ -136,14 +115,14 @@ function setScale(pixelsPerSecond: number) {
 }
 
 function drawSection(drawAtTime: number, tokenOffset: number, tokenDuration: number, scroll: number) {
-  const startVertex = Math.round(tokenOffset * sampleRate / renderPixelSize);
+  const startVertex = Math.round(tokenOffset * sampleRate);
   const naturalTime = vertices[startVertex * 2];
   const offset = drawAtTime - naturalTime - scroll;
 
   const offsetLoc = gl.getUniformLocation(program, "u_offset");
   gl.uniform4fv(offsetLoc, [offset, 0, 0, 0]);
   
-  const vertexCount = Math.round(tokenDuration * sampleRate / renderPixelSize);
+  const vertexCount = Math.round(tokenDuration * sampleRate);
 
   const start = Math.max(0, startVertex - 1);
   const end = Math.min(vertices.length / 2, start + vertexCount + 2);

@@ -157,7 +157,8 @@ export async function processRawAudio(audio: Blob): Promise<AudioBuffer> {
   const ctx = getAudioContext();
   const arrayBuffer: ArrayBuffer = await audio.arrayBuffer();
   const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-  return audioBuffer;
+
+  return await postProcessAudio(audioBuffer);
 }
 
 function playBuffer(ctx: BaseAudioContext, when: number, token: AudioToken, offset: number = 0) {
@@ -223,6 +224,14 @@ async function toEnvelope(buffer: AudioBuffer): Promise<AudioBuffer> {
   const mean = new AudioWorkletNode(ctx, "mean");
   absolute.connect(mean);
 
+  const mergeNode = ctx.createChannelMerger();
+  absolute.connect(mergeNode);
+  mergeNode.connect(ctx.destination);
+
+  return await ctx.startRendering();
+}
+
+async function postProcessAudio(buffer: AudioBuffer): Promise<AudioBuffer> {
   let maxVolume = 0;
   for(let channelIdx = 0; channelIdx < buffer.numberOfChannels; channelIdx++) {
     const channel = buffer.getChannelData(channelIdx);
@@ -230,10 +239,24 @@ async function toEnvelope(buffer: AudioBuffer): Promise<AudioBuffer> {
       maxVolume = Math.max(maxVolume, Math.abs(channel[i]));
     }
   }
+  const gain = 0.8/maxVolume;
 
-  const mergeNode = ctx.createChannelMerger();
-  absolute.connect(mergeNode);
-  mergeNode.connect(ctx.destination);
+  const ctx = new OfflineAudioContext({sampleRate, length: buffer.length});
+
+  const bufferSource = ctx.createBufferSource();
+  bufferSource.buffer = buffer;
+  bufferSource.start();
+
+  const lowShelf = ctx.createBiquadFilter();
+  lowShelf.type = "lowshelf";
+  lowShelf.frequency.value = 5;
+  lowShelf.gain.value = -20;
+  bufferSource.connect(lowShelf);
+
+  const gainNode = ctx.createGain();
+  gainNode.gain.value = gain;
+  lowShelf.connect(gainNode);
+  gainNode.connect(ctx.destination);
 
   return await ctx.startRendering();
 }
