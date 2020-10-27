@@ -12,7 +12,6 @@
 
   export let tokens: EditorToken[];
   export let buffer: AudioBuffer;
-  console.log({tokens, buffer});
 
   let audioDuration: number;
   $: audioDuration = buffer.length / sampleRate;
@@ -29,7 +28,7 @@
   onMount(() => {
     const offscreen = (canvas as HTMLCanvasElement).transferControlToOffscreen();
     controller = new RenderController(offscreen, buffer, tokens, scroll, pixelsPerSecond, canvasWidth, canvasHeight);
-    saveTokens(tokens);
+    // saveTokens(tokens);
   });
 
   let canvasWidthSecs: number;
@@ -124,7 +123,7 @@
   function setToken(token: EditorToken) {
     tokens[token.idx] = token;
     renderTokenChange(token);
-    saveChangedToken(token);
+    // saveChangedToken(token);
     stop(tokens);
     
   }

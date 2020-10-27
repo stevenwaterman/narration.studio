@@ -30,7 +30,7 @@
 {#if !tokens.length}
   <ScriptEntry bind:tokens/>
 {:else if data === null}
-  <AudioRecorder textTokens={textTokens} bind:timingTokens bind:data/>
+  <AudioRecorder {textTokens} bind:timingTokens bind:data/>
 {:else}
-  <AudioProcessor tokens={processingTokens} {data}/>
+  <AudioProcessor {processingTokens} {data}/>
 {/if}

@@ -94,7 +94,6 @@ function drawWaveform(): void {
   const minSecs = scroll - secondsPerClip;
   const maxSecs = scroll + secondsPerClip;
 
-  const drawTasks: Array<() => void> = [];
   let timecode = 0;
   for(const token of tokens) {
     const drawAtTime = Math.max(minSecs, timecode);

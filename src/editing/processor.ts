@@ -13,18 +13,57 @@ export function getAudioContext(): AudioContext {
   return audioContext;
 }
 
-export function createEditorTokens(tokens: ProcessingToken[], buffer: AudioBuffer): EditorToken[] {
+export async function createEditorTokens(tokens: ProcessingToken[], buffer: AudioBuffer): Promise<EditorToken[]> {
+  const envelope = await toEnvelope(buffer);
+  const envelopeChannel = envelope.getChannelData(0);
+
   return tokens.map(token => {
     if (token.type === "PAUSE") return token;
     if (token.type === "PARAGRAPH") return token;
 
-    const offset = token.timings.start / 1000;
-    const duration = (token.timings.end - token.timings.start) / 1000;
+    const originalStartSecs = token.timings.start / 1000;
+    const startSearchSample = Math.max(0, Math.round((originalStartSecs - 0.25) * sampleRate));
+
+    const originalEndSecs = token.timings.end / 1000;
+    const endSearchSample = Math.min(envelopeChannel.length, Math.round((originalEndSecs - 0.25) * sampleRate));
+
+    let maxVolume = 0;
+    for(let i = startSearchSample; i < endSearchSample; i++) {
+      maxVolume = Math.max(maxVolume, envelopeChannel[i]);
+    }
+    const threshold = 0.02 * maxVolume;
+
+    const startValues: number[] = [];
+    let startSample: number | null = null;
+    for(let i = startSearchSample; i <= endSearchSample; i++) {
+      const value = envelopeChannel[i];
+      startValues.push(value);
+      if(value >= threshold) {
+        startSample = i;
+        break;
+      }
+    }
+    
+    const endValues: {i: number; value: number}[] = [];
+    let endSample: number | null = null;
+    for(let i = endSearchSample; i >= startSearchSample; i--) {
+      const value = envelopeChannel[i];
+      endValues.push({i, value});
+      if(value >= threshold) {
+        endSample = i;
+        break;
+      }
+    }
+
+    const startSecs = startSample === null ? originalStartSecs - 0.5 : startSample / sampleRate - 0.05;
+    const endSecs = endSample === null ? originalEndSecs - 0.25 : endSample / sampleRate + 0.05;
+    const duration = endSecs - startSecs;
+
     return {
       type: "AUDIO",
       idx: token.idx,
-      start: offset - 0.5,
-      duration: duration - 0.25,
+      start: startSecs,
+      duration: duration,
       buffer: buffer,
       stop: () => {}
     };
@@ -164,3 +203,37 @@ export async function save(tokens: EditorToken[]) {
   download(array, `audio.wav`);
 }
 
+async function toEnvelope(buffer: AudioBuffer): Promise<AudioBuffer> {
+  const ctx = new OfflineAudioContext({sampleRate, length: buffer.length});
+  await ctx.audioWorklet.addModule("customAudio.js");
+
+  const bufferSource = ctx.createBufferSource();
+  bufferSource.buffer = buffer;
+  bufferSource.start();
+
+  const bandPass = ctx.createBiquadFilter();
+  bandPass.type = "bandpass";
+  bandPass.frequency.value = (300 + 3000) / 2;
+  bandPass.Q.value = 0.351364184463;
+  bufferSource.connect(bandPass);
+  
+  const absolute = new AudioWorkletNode(ctx, "absolute");
+  bandPass.connect(absolute);
+
+  const mean = new AudioWorkletNode(ctx, "mean");
+  absolute.connect(mean);
+
+  let maxVolume = 0;
+  for(let channelIdx = 0; channelIdx < buffer.numberOfChannels; channelIdx++) {
+    const channel = buffer.getChannelData(channelIdx);
+    for(let i = 0; i < channel.length; i++) {
+      maxVolume = Math.max(maxVolume, Math.abs(channel[i]));
+    }
+  }
+
+  const mergeNode = ctx.createChannelMerger();
+  absolute.connect(mergeNode);
+  mergeNode.connect(ctx.destination);
+
+  return await ctx.startRendering();
+}
