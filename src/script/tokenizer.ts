@@ -13,8 +13,8 @@ type ChunkedToken = {
   text: string[];
 }
 
-const paragraphDelay = 0.8;
-const sentenceDelay = 0.2;
+const paragraphDelay = 1;
+const sentenceDelay = 0.3;
 
 export function computeScriptTokens(script: string): ScriptToken[] {
   const {cleaned, replacements} = cleanupScript(script);

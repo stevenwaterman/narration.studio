@@ -21,41 +21,112 @@ export async function createEditorTokens(tokens: ProcessingToken[], buffer: Audi
     if (token.type === "PAUSE") return token;
     if (token.type === "PARAGRAPH") return token;
 
+    // Start with Speech Recognition API's best guess adjusted slightly for latency
     const originalStartSecs = token.timings.start / 1000;
-    const startSearchSample = Math.max(0, Math.round((originalStartSecs - 0.25) * sampleRate));
+    let startSearchSample = Math.max(0, Math.round((originalStartSecs - 0.1) * sampleRate));
 
     const originalEndSecs = token.timings.end / 1000;
-    const endSearchSample = Math.min(envelopeChannel.length, Math.round((originalEndSecs - 0.25) * sampleRate));
+    let endSearchSample = Math.min(envelopeChannel.length, Math.round((originalEndSecs - 0.5) * sampleRate));
 
     let maxVolume = 0;
     for(let i = startSearchSample; i < endSearchSample; i++) {
       maxVolume = Math.max(maxVolume, envelopeChannel[i]);
     }
-    const threshold = 0.02 * maxVolume;
+    const speechThreshold = 0.2 * maxVolume;
+    const silenceThreshold = 0.1 * maxVolume;
+    const silenceCount = 0.1 * sampleRate; // 0.1 seconds of silence
 
-    const startValues: number[] = [];
+    // Expand until you hit silence (often immediately)
+    // To handle case where speech recognition ended early
+    {
+      let count = 0;
+      for(let i = startSearchSample; i >= 0; i--) {
+        const value = envelopeChannel[i];
+        if(value <= silenceThreshold) {
+          count++;
+          if(count > silenceCount) {
+            startSearchSample = i;
+            break;
+          }
+        } else {
+          count = 0;
+        }
+      }
+    }
+    
+  
+    {
+      let count = 0;
+      for(let i = endSearchSample; i < envelopeChannel.length; i++) {
+        const value = envelopeChannel[i];
+        if(value <= silenceThreshold) {
+          count++;
+          if(count > silenceCount) {
+            endSearchSample = i;
+            break;
+          }
+        } else {
+          count = 0;
+        }
+      }
+    }
+    
+
+    // Move in to find speech
+    // To handle case where speech recognition ended late
     let startSample: number | null = null;
     for(let i = startSearchSample; i <= endSearchSample; i++) {
       const value = envelopeChannel[i];
-      startValues.push(value);
-      if(value >= threshold) {
+      if(value >= speechThreshold) {
         startSample = i;
         break;
       }
     }
-    
-    const endValues: {i: number; value: number}[] = [];
+
     let endSample: number | null = null;
     for(let i = endSearchSample; i >= startSearchSample; i--) {
       const value = envelopeChannel[i];
-      endValues.push({i, value});
-      if(value >= threshold) {
+      if(value >= speechThreshold) {
         endSample = i;
         break;
       }
     }
 
-    const startSecs = startSample === null ? originalStartSecs - 0.5 : startSample / sampleRate - 0.05;
+    // Move out to find silence
+    // To handle case where speech has slow ramp in/out
+    if(startSample) {
+      let count = 0;
+      for(let i = startSample; i >= startSearchSample; i--) {
+        const value = envelopeChannel[i];
+        if(value <= silenceThreshold) {
+          count++;
+          if(count > silenceCount) {
+            startSample = i;
+            break;
+          }
+        } else {
+          count = 0;
+        }
+      }
+    }
+    
+    if(endSample) {
+      let count = 0;
+      for(let i = endSample; i <= endSearchSample; i++) {
+        const value = envelopeChannel[i];
+        if(value <= silenceThreshold) {
+          count++;
+          if(count > silenceCount) {
+            endSample = i;
+            break;
+          }
+        } else {
+          count = 0;
+        }
+      }
+    }
+
+    const startSecs = startSample === null ? originalStartSecs - 0.5 : startSample / sampleRate;
     const endSecs = endSample === null ? originalEndSecs - 0.25 : endSample / sampleRate + 0.05;
     const duration = endSecs - startSecs;
 
@@ -204,8 +275,8 @@ export async function save(tokens: EditorToken[]) {
   download(array, `audio.wav`);
 }
 
-async function toEnvelope(buffer: AudioBuffer): Promise<AudioBuffer> {
-  const ctx = new OfflineAudioContext({sampleRate, length: buffer.length});
+export async function toEnvelope(buffer: AudioBuffer): Promise<AudioBuffer> {
+  const ctx = new OfflineAudioContext({sampleRate, length: buffer.length, numberOfChannels: 1});
   await ctx.audioWorklet.addModule("customAudio.js");
 
   const bufferSource = ctx.createBufferSource();
@@ -223,10 +294,7 @@ async function toEnvelope(buffer: AudioBuffer): Promise<AudioBuffer> {
 
   const mean = new AudioWorkletNode(ctx, "mean");
   absolute.connect(mean);
-
-  const mergeNode = ctx.createChannelMerger();
-  absolute.connect(mergeNode);
-  mergeNode.connect(ctx.destination);
+  mean.connect(ctx.destination);
 
   return await ctx.startRendering();
 }
@@ -249,8 +317,8 @@ async function postProcessAudio(buffer: AudioBuffer): Promise<AudioBuffer> {
 
   const lowShelf = ctx.createBiquadFilter();
   lowShelf.type = "lowshelf";
-  lowShelf.frequency.value = 5;
-  lowShelf.gain.value = -20;
+  lowShelf.frequency.value = 10;
+  lowShelf.gain.value = -100;
   bufferSource.connect(lowShelf);
 
   const gainNode = ctx.createGain();

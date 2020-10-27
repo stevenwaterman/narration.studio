@@ -11,11 +11,12 @@ type Message = {
 };
 
 let renderParams: RenderParams = null as any;
-
+let initialised = false;
 self.addEventListener('message', ({data}: Message) => {
   if (data.type === "create") {
     setup(data);
-  } else {
+    initialised = true;
+  } else if(initialised) {
     if(data.type === "update_scroll") {
       renderParams.scroll = data.scroll;
     } else if(data.type === "update_zoom") {

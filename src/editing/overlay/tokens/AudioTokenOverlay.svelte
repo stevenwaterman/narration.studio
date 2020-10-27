@@ -57,6 +57,8 @@
     }
     setToken(token);
   }
+
+  let stretching: boolean = false;
 </script>
 
 <style>
@@ -104,6 +106,10 @@
     pointer-events: none;
     background-image: linear-gradient(90deg, rgba(255,0,0,0) 0%, rgba(255,0,0,1) 100%);
   }
+
+  .hidden {
+    opacity: 0;
+  }
 </style>
 
 {#if width > 10}
@@ -115,11 +121,11 @@
       onEnd: () => clamped = null
     })}/>
 
-    <div class="stretchRegion" on:mousedown|preventDefault={dragStart({
+    <div class="stretchRegion" class:hidden={stretching} on:mousedown|preventDefault={dragStart({
       button: "RIGHT", 
       onDrag: stretchHandler, 
-      otherInfoGetter: () => token.duration, 
-      onEnd: () => clamped = null
+      otherInfoGetter: () => {stretching = true; return token.duration}, 
+      onEnd: () => {stretching = false; clamped = null}
     })}/>
 
     {#if displayLeftClamp}

@@ -121,7 +121,7 @@ async function replaceAudio(db: IDBDatabase, data: Blob): Promise<void> {
     transaction.onerror = () => reject("Saving audio error");
 
     const store = transaction.objectStore(audioStoreName);
-    store.add(data, audioStoreKey);
+    store.put(data, audioStoreKey);
   });
 }
 
@@ -134,7 +134,7 @@ async function replaceTokens(db: IDBDatabase, tokens: SimplifiedToken[]): Promis
 
     const store = transaction.objectStore(tokensStoreName);
     store.clear();
-    tokens.forEach(token => store.add(token));
+    tokens.forEach(token => store.put(token));
   });
 }
 
@@ -146,7 +146,7 @@ async function patchToken(db: IDBDatabase, token: SimplifiedToken): Promise<void
     transaction.onerror = () => reject("Saving audio token error");
 
     const store = transaction.objectStore(tokensStoreName);
-    store.add(token);
+    store.put(token);
   });
 }
 

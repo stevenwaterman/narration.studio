@@ -308,12 +308,12 @@
 
 <div class="column">
   <div class="prompt" class:hidden={currentTokenNumber === 0}>If you didn't like your delivery of the last line, say it again:</div>
-  <div class="script" class:hidden={currentTokenNumber === 0}>{prevLine || "NONE"}</div>
+  <div class="script" class:hidden={currentTokenNumber === 0}>{@html prevLine || "NONE"}</div>
 
   <div class="spacer"/>
 
   <div class="prompt">{bottomPrompt}</div>
-  <div class="script">{bottomLine}</div>
+  <div class="script">{@html bottomLine}</div>
 
   <div class="spacer"/>
 

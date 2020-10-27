@@ -14,14 +14,19 @@
     let timecode = 0;
     const output: Array<{token: EditorToken; left: number}> = [];
     for(const token of tokens) {
+      const newTimecode = timecode + token.duration;
       if(timecode >= end) return output;
-      if(timecode >= start && timecode < end) {
+      if(
+        timecode >= start && timecode < end || 
+        newTimecode > start && newTimecode < end || 
+        timecode <= start && newTimecode >= end
+      ) {
         output.push({
           token,
           left: (timecode - scroll) * pixelsPerSecond
         });
       }
-      timecode += token.duration;
+      timecode = newTimecode;
     }
     return output;
   }
