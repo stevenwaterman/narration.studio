@@ -1,3 +1,9 @@
+<style>
+  h2 {
+    text-align: center;
+  }
+</style>
+
 <div>
   <h2>Record a narration in 3 easy steps!</h2>
   <ol>
