@@ -2,7 +2,7 @@
 
 Narration Studio is an in-browser audio editing tool for recording voiceovers and audio books.
 
-* **Automatic** - Speech recognition API detects the start and end of each sentence, allowing you to pause, talk about other things, and retake previous lines.
+* **Automatic** - Speech recognition API detects the start and end of each sentence, allowing you to pause, talk about other things, and retake previous lines. Mistakes are removed for you.
 * **Batteries-Included** - Supports plaintext, CommonMark, and GFM. No setup, no accounts, completely in-browser.
 * **High Performance** - Rendering using WebGL, editing using Web Audio API, lossless WAV audio throughout. Instant auto-save using IndexedDB.
 
