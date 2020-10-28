@@ -86,4 +86,11 @@ This tends to work pretty well.
 ### Editing
 
 The waveform is rendered using WebGL2 in an OffscreenCanvas.
+The entire scrollable waveform display is a single canvas.
+There is no pre-processing on the waveform, we draw one line per audio sample.
+This is theoretically inefficient but the graphics card is so fast that it's quicker to do more rendering than to do some filtering on the cpu.
 UI elements are drawn on top of that using the DOM.
+
+The audio is rendered in real-time using the [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) when the play button is pressed.
+The save button does the same thing but uses an [OfflineAudioContext](https://developer.mozilla.org/en-US/docs/Web/API/OfflineAudioContext) to get an AudioBuffer out.
+It is converted to a wav using [audiobuffer-to-wav](https://www.npmjs.com/package/audiobuffer-to-wav) and downloaded using [downloadjs](https://www.npmjs.com/package/downloadjs).
