@@ -132,10 +132,12 @@
   .container {
     display: flex;
     flex-direction: column;
-    height: 100%;
     width: 100%;
     align-items: center;
     justify-content: flex-start;
+    flex-shrink: 1;
+    flex-grow: 1;
+    min-height: 0;
   }
 
   .canvasContainer {
