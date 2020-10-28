@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { TextToken, ScriptToken, TimingToken, ProcessingToken, SilenceToken } from "./tokens";
+  import type { TextToken, ScriptToken, TimingToken, ProcessingToken, SilenceToken, NonTextToken } from "./tokens";
 
   import AudioRecorder from "./recording/AudioRecorder.svelte";
   import AudioProcessor from "./editing/AudioProcessor.svelte";
@@ -10,14 +10,14 @@
   let textTokens: TextToken[];
   $: textTokens = tokens.filter(token => token.type === "TEXT") as TextToken[];
 
-  let silenceTokens: SilenceToken[];
-  $: silenceTokens = tokens.filter(token => token.type === "PAUSE" || token.type === "PARAGRAPH") as SilenceToken[];
+  let nonTextTokens: NonTextToken[];
+  $: nonTextTokens = tokens.filter(token => token.type !== "TEXT") as NonTextToken[];
 
   let timingTokens: TimingToken[] = [];
   let data: Blob | null = null;
 
   let processingTokens: ProcessingToken[];
-  $: processingTokens = [...timingTokens, ...silenceTokens].sort((a,b) => a.idx - b.idx);
+  $: processingTokens = [...timingTokens, ...nonTextTokens].sort((a,b) => a.idx - b.idx);
 </script>
 
 {#if !tokens.length}

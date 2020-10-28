@@ -1,4 +1,4 @@
-import { EditorToken, SilenceToken } from "../tokens";
+import { EditorToken, SilenceToken, NonTextToken } from "../tokens";
 import { processRawAudio } from "./processor";
 
 const audioStoreName = "audio" as const;
@@ -44,7 +44,7 @@ export async function load(): Promise<{
   return { audio, tokens };
 }
 
-type SimplifiedToken = SilenceToken | {
+type SimplifiedToken = NonTextToken | {
   idx: number;
   type: "AUDIO";
   start: number;

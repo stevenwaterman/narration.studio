@@ -1,18 +1,18 @@
 <script lang="ts">
-  import type { EditorToken } from "../../../tokens";
+  import type { VisibleToken } from "../../../tokens";
   import AudioTokenOverlay from "./AudioTokenOverlay.svelte";
   import SilenceTokenOverlay from "./SilenceTokenOverlay.svelte";
 
-  export let tokens: EditorToken[];
+  export let tokens: VisibleToken[];
   export let pixelsPerSecond: number;
   export let scroll: number;
   export let audioDuration: number;
   export let canvasBounds: {start: number; end: number};
-  export let setToken: (token: EditorToken) => void;
+  export let setToken: (token: VisibleToken) => void;
 
-  function toStartTokens(tokens: EditorToken[], {start, end}: {start: number; end: number}): Array<{token: EditorToken; left: number}> {
+  function toStartTokens(tokens: VisibleToken[], {start, end}: {start: number; end: number}): Array<{token: VisibleToken; left: number}> {
     let timecode = 0;
-    const output: Array<{token: EditorToken; left: number}> = [];
+    const output: Array<{token: VisibleToken; left: number}> = [];
     for(const token of tokens) {
       const newTimecode = timecode + token.duration;
       if(timecode >= end) return output;
@@ -31,7 +31,7 @@
     return output;
   }
 
-  let startTokens: Array<{token: EditorToken; left: number}>;
+  let startTokens: Array<{token: VisibleToken; left: number}>;
   $: startTokens = toStartTokens(tokens, canvasBounds);
 </script>
 

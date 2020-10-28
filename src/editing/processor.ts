@@ -18,8 +18,7 @@ export async function createEditorTokens(tokens: ProcessingToken[], buffer: Audi
   const envelopeChannel = envelope.getChannelData(0);
 
   return tokens.map(token => {
-    if (token.type === "PAUSE") return token;
-    if (token.type === "PARAGRAPH") return token;
+    if (token.type !== "TIMING") return token;
 
     // Start with Speech Recognition API's best guess adjusted slightly for latency
     const originalStartSecs = token.timings.start / 1000;
@@ -175,7 +174,7 @@ export function play(tokens: EditorToken[], startTime: number = 0): void {
   tokens.forEach((token) => {
     if (token.type === "PAUSE" || token.type === "PARAGRAPH") {
       timeOffset += token.duration;
-    } else {
+    } else if(token.type === "AUDIO") {
       const finishTimeOffset = timeOffset + token.duration;
       if(timeOffset >= startTime) {
         playBuffer(ctx, currentTime + timeOffset - startTime, token);
@@ -200,7 +199,7 @@ export function pause(tokens: EditorToken[]): void {
   let duration = 0;
   tokens.forEach(token => {
     if (token.type === "AUDIO") token.stop();
-    duration += token.duration;
+    if (token.type !== "NOTHING") duration += token.duration;
   });
   const oldOffset = audioState.type === "PLAYING" ? audioState.offset : 0;
   const newOffset = oldOffset + getCurrentTime();
@@ -255,16 +254,14 @@ function playBuffer(ctx: BaseAudioContext, when: number | undefined, token: Audi
 }
 
 export async function save(tokens: EditorToken[]) {
-  const duration: number = tokens.map(token => {
-    return token.duration;
-  }).reduce((a,b) => a+b, 0);
+  const duration: number = tokens.map(token => token.type === "NOTHING" ? 0 : token.duration).reduce((a,b) => a+b, 0);
   const ctx = new OfflineAudioContext({sampleRate, length: duration * sampleRate});
 
   let currentTime = 0;
   tokens.forEach((token) => {
     if (token.type === "PAUSE" || token.type === "PARAGRAPH") {
       currentTime += token.duration;
-    } else {
+    } else if (token.type === "AUDIO") {
       playBuffer(ctx, currentTime, token);
       currentTime += token.duration;
     }

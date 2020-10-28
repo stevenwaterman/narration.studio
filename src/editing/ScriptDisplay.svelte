@@ -17,24 +17,36 @@
   let currentTime: number | null;
   $: currentTime = playingCursorPositionSeconds === null ? cursorPositionSeconds : playingCursorPositionSeconds;
 
-  type DisplayToken = {idx: number; start: number; end: number; raw: string;};
+  type DisplayToken = {idx: number; timestamp?: {start: number; end: number;}; raw: string;};
 
   function toDisplayTokens(tokens: EditorToken[]): DisplayToken[] {
     const output: DisplayToken[] = [];
     let time = 0;
     tokens.forEach(token => {
-      if(token.type === "PARAGRAPH") {
+      if(token.type === "NOTHING") {
         output.push({
           idx: token.idx,
-          start: time,
-          end: time + token.duration,
-          raw: token.raw,
+          raw: token.raw
         });
       } else {
-        output[output.length - 1].end += token.duration;
+        if(token.type === "PARAGRAPH") {
+          output.push({
+            idx: token.idx,
+            raw: token.raw,
+            timestamp: {
+              start: time,
+              end: time + token.duration
+            }
+          });
+        } else if(output.length){
+          const last = output[output.length - 1];
+          if(last.timestamp !== undefined) {
+            last.timestamp.end += token.duration;
+          }
+        }
+
+        time += token.duration;
       }
-      
-      time += token.duration;
     })
     return output;
   }
@@ -47,6 +59,14 @@
     block: "center",
     behavior: "auto"
   });
+
+  function between(currentTime: number | null, timestamp: {start: number; end: number;} | undefined): boolean {
+    if (currentTime === null) return false;
+    if (timestamp === undefined) return false;
+    if (timestamp.start > currentTime) return false;
+    if (timestamp.end <= currentTime) return false;
+    return true;
+  }
 </script>
 
 <style>
@@ -69,13 +89,15 @@
 </style>
 
 <div class="container">
-  {#each displayTokens as token (token.idx)}
-    <ScriptTimestamp time={token.start}/>
+  {#each displayTokens as {idx, raw, timestamp} (idx)}
+    {#if timestamp}
+      <ScriptTimestamp time={timestamp.start}/>
+    {/if}
     
-    {#if currentTime !== null && currentTime >= token.start && currentTime < token.end}
-      <div class="highlighted" bind:this={highlightedDiv}>{token.raw}</div>
+    {#if between(currentTime, timestamp)}
+      <div class="highlighted" bind:this={highlightedDiv}>{raw}</div>
     {:else}
-      <div>{token.raw}</div>
+      <div>{raw}</div>
     {/if}
   {/each}
 </div>

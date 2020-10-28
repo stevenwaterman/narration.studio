@@ -1,6 +1,6 @@
 <script lang="ts">
   import { audioStatusStore, play, sampleRate, save, stop, togglePause } from "./processor";
-  import type { EditorToken } from "../tokens";
+  import type { EditorToken, VisibleToken } from "../tokens";
   import RenderController from "./canvas/renderController";
   import Timestamps from "./overlay/Timestamps.svelte";
   import PlayCursor from "./overlay/PlayCursor.svelte";
@@ -12,6 +12,9 @@
 
   export let tokens: EditorToken[];
   export let buffer: AudioBuffer;
+
+  let visibleTokens: VisibleToken[];
+  $: visibleTokens = tokens.filter(token => token.type !== "NOTHING") as VisibleToken[];
 
   let audioDuration: number;
   $: audioDuration = buffer.length / sampleRate;
@@ -27,7 +30,7 @@
 
   onMount(() => {
     const offscreen = (canvas as HTMLCanvasElement).transferControlToOffscreen();
-    controller = new RenderController(offscreen, buffer, tokens, scroll, pixelsPerSecond, canvasWidth, canvasHeight);
+    controller = new RenderController(offscreen, buffer, visibleTokens, scroll, pixelsPerSecond, canvasWidth, canvasHeight);
   });
 
   let canvasWidthSecs: number;
@@ -43,7 +46,7 @@
   $: canvasBounds = {start: canvasStartSecs, end: canvasEndSecs};
 
   let duration: number;
-  $: duration = tokens.map(token => token.duration).reduce((a,b) => a+b, 0);
+  $: duration = tokens.map(token => token.type === "NOTHING" ? 0 : token.duration).reduce((a,b) => a+b, 0);
 
   function setScroll(value: number) {
     const widthSecs = canvasWidth / pixelsPerSecond;
@@ -113,13 +116,13 @@
   }
   $: renderSizeChange(canvasWidth, canvasHeight);
 
-  function renderTokenChange(token: EditorToken) {
+  function renderTokenChange(token: VisibleToken) {
     if(controller) {
       controller.updateToken(token);
     }
   }
 
-  function setToken(token: EditorToken) {
+  function setToken(token: VisibleToken) {
     tokens[token.idx] = token;
     renderTokenChange(token);
     saveChangedToken(token);
@@ -199,7 +202,7 @@
 <div class="container"
   on:mousemove={drag}
 >
-  <ScriptDisplay tokens={tokens} {scroll} {cursorPositionSeconds}/>
+  <ScriptDisplay {tokens} {scroll} {cursorPositionSeconds}/>
 
   <div class="canvasContainer"
   on:mousedown|preventDefault={dragStart({
@@ -217,7 +220,7 @@
   >
     <PlayCursor {scroll} {duration} {pixelsPerSecond} on:timechange={timechange}/>
     <Timestamps bind:cursorPositionSeconds {scroll} {pixelsPerSecond} {duration} on:play={e => play(tokens, e.detail)}/>
-    <TokensOverlay {tokens} {scroll} {pixelsPerSecond}  {audioDuration} {canvasBounds} {setToken}/>
+    <TokensOverlay tokens={visibleTokens} {scroll} {pixelsPerSecond}  {audioDuration} {canvasBounds} {setToken}/>
     <canvas bind:this={canvas}/>
   </div>
   

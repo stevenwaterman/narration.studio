@@ -1,4 +1,4 @@
-import { EditorToken, PauseToken, NewParagraphToken } from "../../tokens";
+import { VisibleToken } from "../../tokens";
 import RenderWorker from "web-worker:./render.ts";
 
 type RenderToken = {
@@ -53,7 +53,7 @@ export type RenderMessage = RenderMessageCreate | RenderMessageUpdateScroll | Re
 const worker: Worker = new RenderWorker();
 
 class RenderController {
-  constructor(canvas: OffscreenCanvas, buffer: AudioBuffer, tokens: EditorToken[], scroll: number, pixelsPerSecond: number, width: number, height: number)  {
+  constructor(canvas: OffscreenCanvas, buffer: AudioBuffer, tokens: VisibleToken[], scroll: number, pixelsPerSecond: number, width: number, height: number)  {
     const data: Float32Array = getData(buffer);
     const renderTokens: RenderToken[] = tokens.map(token => {
       if(token.type === "AUDIO") {
@@ -103,7 +103,7 @@ class RenderController {
     worker.postMessage(msg);
   }
 
-  updateToken(token: EditorToken) {
+  updateToken(token: VisibleToken) {
     const start = token.type === "AUDIO" ? token.start : undefined;
     const msgToken = {
       idx: token.idx,

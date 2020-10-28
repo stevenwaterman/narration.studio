@@ -43,25 +43,15 @@ export function computeScriptTokens(script: string): ScriptToken[] {
   });
 
   const scriptTokens: ScriptToken[] = chunkedTokens.flatMap(toScriptToken);
-  const combinedParagraphs: ScriptToken[] = scriptTokens.reduce((acc: ScriptToken[], elem) => {
-    if(acc.length) {
-      const last = acc[acc.length - 1];
-      if(elem.type === "PARAGRAPH" && last.type === "PARAGRAPH") {
-        last.duration = Math.max(last.duration, elem.duration);
-        last.raw += elem.raw;
-        return acc;
-      }
+  scriptTokens.forEach((token, idx) => token.idx = idx);
+  for(let token of scriptTokens) {
+    if(token.type === "PARAGRAPH") {
+      token.duration = 0.1;
+      break;
     }
-    return [...acc, elem];
-  }, []);
-
-  combinedParagraphs.forEach((token, idx) => token.idx = idx);
-  if(combinedParagraphs.length) {
-    const first: NewParagraphToken = combinedParagraphs[0] as NewParagraphToken;
-    first.duration = 0.1;
   }
 
-  return combinedParagraphs;
+  return scriptTokens;
 }
 
 function cleanupScript(script: string): {cleaned: string, replacements: Record<string, string>} {
@@ -123,7 +113,13 @@ function combineChildren(token: Extract<MarkedToken, {tokens: MarkedToken[]}>): 
 function toScriptToken(token: ChunkedToken): ScriptToken[] {
   const tokens: ScriptToken[] = [];
 
-  if(token.text.length) {
+  if(token.text.length === 0) {
+    tokens.push({
+      idx: -1,
+      type: "NOTHING",
+      raw: token.raw
+    });
+  } else {
     tokens.push({
       idx: -1,
       type: "PARAGRAPH",
@@ -145,13 +141,6 @@ function toScriptToken(token: ChunkedToken): ScriptToken[] {
           duration: sentenceDelay
         });
       }
-    });
-  } else {
-    tokens.push({
-      idx: -1,
-      type: "PARAGRAPH",
-      duration: 0.1,
-      raw: token.raw
     });
   }
 

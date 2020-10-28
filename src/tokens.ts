@@ -16,9 +16,16 @@ export type NewParagraphToken = BaseToken<"PARAGRAPH"> & {
   raw: string;
 }
 
-export type SilenceToken = PauseToken | NewParagraphToken;
+export type NothingToken = BaseToken<"NOTHING"> & {
+  raw: string;
+}
 
-export type ScriptToken = TextToken | SilenceToken;
+export type SilenceToken = PauseToken | NewParagraphToken;
+export type NonTextToken = SilenceToken | NothingToken;
+
+export type ScriptToken = TextToken | NonTextToken;
+
+
 
 export type TimingToken = BaseToken<"TIMING"> & Omit<TextToken, "type"> & {
   timings: {
@@ -27,11 +34,13 @@ export type TimingToken = BaseToken<"TIMING"> & Omit<TextToken, "type"> & {
   }
 };
 
-export type ProcessingToken = TimingToken | SilenceToken;
+export type ProcessingToken = TimingToken | NonTextToken;
 
 export type AudioToken = BaseToken<"AUDIO"> & {start: number; duration: number; buffer: AudioBuffer; stop: () => void;};
 
-export type EditorToken = SilenceToken | AudioToken;
+export type EditorToken = NonTextToken | AudioToken;
+
+export type VisibleToken = AudioToken | SilenceToken;
 
 export type WaveformToken = BaseToken<"WAVE"> & {start: number; duration: number;};
 
