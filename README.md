@@ -19,6 +19,7 @@ Narration.studio is [MIT licensed](./LICENSE).
 
 ## Implementation
 
+Narration.studio is written in [Svelte](https://svelte.dev) which I can recomment.
 This is a brief description of a few implementation details - mostly just the interesting bits!
 
 ### Script Parsing
