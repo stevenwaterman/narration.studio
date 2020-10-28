@@ -102,15 +102,14 @@
       {#await canLoad()}
         <h2>Checking for save data</h2>
       {:then dataExists}
+        <Guide/>
         {#if dataExists}
-          <h2>Welcome Back!</h2>
           <h2>Saved data found</h2>
           <div class="buttonRow">
             <button on:click={() => loadFromSave = false}>Start Again</button>
             <button on:click={() => loadFromSave = true}>Load from Save</button>
           </div>
         {:else}
-          <Guide/>
           <div class="buttonRow">
             <button on:click={() => loadFromSave = false}>Start</button>
           </div>
@@ -131,7 +130,7 @@
     </p>
     <p class="explanation">
       Not in the sense that we haven't tested it, but in the sense that it legitimately won't work.
-      We use lots of experimental APIs that only exist in Chrome.
+      The entire app is built around the Web Speech Recognition API which only exists in Chrome.
       Trust me, I'm a Firefox user and normally ignore these.
     </p>
     <h2>Sorry!</h2>
