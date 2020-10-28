@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "audiobuffer-to-wav": "^1.0.0",
+    "bowser": "^2.11.0",
     "downloadjs": "^1.4.7",
     "fast-levenshtein": "^3.0.0",
     "marked": "^1.2.2",

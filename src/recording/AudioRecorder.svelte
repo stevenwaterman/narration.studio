@@ -26,6 +26,10 @@
   let prevLinePronunciation: string | undefined;
   $: prevLinePronunciation = prevLine === undefined ? undefined : toPronunciation(prevLine);
 
+  const minTokenNumber = 1;
+  let maxTokenNumber = 0;
+  $: maxTokenNumber = Math.max(maxTokenNumber, currentTokenNumber);
+
   let atEnd: boolean;
   $: atEnd = currentLine === undefined;
   let completed: () => void = () => {};
@@ -172,6 +176,14 @@
         data = event.data;
         recognition.onend = () => {};
         recognition.stop();
+      }
+    }).catch((error: DOMException) => {
+      console.log(error.message);
+      if(error.message === "Permission denied") {
+        recognition.onerror = () => {};
+        alert(`Audio error: '${error.message}'. Audio permission is required because that's the whole point of the app. Click on the i in the address bar to allow then reload the page`);
+      } else {
+        alert(`Audio error: '${error.message}'.`);
       }
     });
   
@@ -322,7 +334,24 @@
   .hidden {
     opacity: 0;
   }
+
+  .back {
+    position: fixed;
+    top: 50vh;
+    left: 10px;
+    transform: translateY(-50%);
+  }
+
+  .forwards {
+    position: fixed;
+    top: 50vh;
+    right: 10px;
+    transform: translateY(-50%);
+  }
 </style>
+
+<button class="back" disabled={hearing || currentTokenNumber <= minTokenNumber} on:click={() => currentTokenNumber--}>&lt;-</button>
+<button class="forwards" disabled={hearing || currentTokenNumber >= maxTokenNumber} on:click={() => currentTokenNumber++}>-&gt;</button>
 
 <div class="column">
   <div class="prompt" class:hidden={currentTokenNumber === 0}>If you didn't like your delivery of the last line, say it again:</div>

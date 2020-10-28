@@ -31,7 +31,6 @@
 </style>
 
 <div class="column">
-  <h1>Narration.studio</h1>
   <textarea bind:value={script} placeholder="Paste your script in here (supports markdown)"/>
   <button on:click={submit}>Submit</button>
 </div>

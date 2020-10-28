@@ -4,9 +4,9 @@
 </script>
 
 {#await load()}
-  Loading save
+  <h2>Loading save</h2>
 {:then data}
   <Editor tokens={data.tokens} buffer={data.audio}/>
 {:catch error}
-  {error}
+  <h2>{error}</h2>
 {/await}

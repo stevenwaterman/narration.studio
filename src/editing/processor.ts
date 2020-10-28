@@ -181,7 +181,7 @@ export function play(tokens: EditorToken[], startTime: number = 0): void {
         playBuffer(ctx, currentTime + timeOffset - startTime, token);
       } else if (finishTimeOffset > startTime) {
         const additionalOffset = startTime - timeOffset;
-        playBuffer(ctx, currentTime + timeOffset - startTime, token, additionalOffset);
+        playBuffer(ctx, undefined, token, additionalOffset);
       }
       timeOffset = finishTimeOffset;
     }
@@ -230,7 +230,7 @@ export async function processRawAudio(audio: Blob): Promise<AudioBuffer> {
   return await postProcessAudio(audioBuffer);
 }
 
-function playBuffer(ctx: BaseAudioContext, when: number, token: AudioToken, offset: number = 0) {
+function playBuffer(ctx: BaseAudioContext, when: number | undefined, token: AudioToken, offset: number = 0) {
   const duration = token.duration - offset;
 
   const sourceNode = ctx.createBufferSource();
@@ -238,12 +238,16 @@ function playBuffer(ctx: BaseAudioContext, when: number, token: AudioToken, offs
   sourceNode.start(when, token.start + offset, duration);
 
   const gainNode = ctx.createGain();
-  gainNode.gain.value = 0;
-  gainNode.gain.setValueAtTime(0, when);
-  gainNode.gain.linearRampToValueAtTime(1, when + 0.05);
-  gainNode.gain.linearRampToValueAtTime(1, when + duration - 0.05);
-  gainNode.gain.linearRampToValueAtTime(0, when + duration);
-
+  if(when === undefined) {
+    gainNode.gain.value = 1;
+  } else {
+    gainNode.gain.value = 0;
+    gainNode.gain.setValueAtTime(0, when);
+    gainNode.gain.linearRampToValueAtTime(1, when + 0.05);
+    gainNode.gain.linearRampToValueAtTime(1, when + duration - 0.05);
+    gainNode.gain.linearRampToValueAtTime(0, when + duration);
+  }
+  
   sourceNode.connect(gainNode);
   gainNode.connect(ctx.destination);
   

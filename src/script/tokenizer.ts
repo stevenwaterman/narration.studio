@@ -1,10 +1,10 @@
 import { ScriptToken, NewParagraphToken } from "../tokens";
-import { lexer, Tokens } from "marked";
+import { lexer } from "marked";
 import { MarkedToken } from "./markedTokens";
 import { v4 as uuid} from "uuid";
 
 type ParagraphToken = {
-  text: string;
+  text?: string;
   raw: string;
 };
 
@@ -22,7 +22,9 @@ export function computeScriptTokens(script: string): ScriptToken[] {
   const tokens: MarkedToken[] = lexer(cleaned, {gfm: true}) as unknown as MarkedToken[];
   const paragraphTokens: ParagraphToken[] = tokens.flatMap(toParagraphToken);
   const chunkedTokens: ChunkedToken[] = paragraphTokens.map(token => {
-    const chunks = token.text.split(/([.?!]+\s+)|(\s+-\s+)|(:*\s*\n+)/g);
+    if(token.text === undefined) return {raw: token.raw, text: []};
+
+    const chunks = token.text.split(/([.?!]+\s+)|(:*\s*\n+)/g);
     const definedChunks = chunks.filter(chunk => chunk !== undefined);
     const textChunks = definedChunks.filter((_, idx) => idx % 2 === 0);
     const trimmed = textChunks.map(chunk => chunk.trim());
@@ -41,13 +43,25 @@ export function computeScriptTokens(script: string): ScriptToken[] {
   });
 
   const scriptTokens: ScriptToken[] = chunkedTokens.flatMap(toScriptToken);
-  scriptTokens.forEach((token, idx) => token.idx = idx);
-  if(scriptTokens.length) {
-    const first: NewParagraphToken = scriptTokens[0] as NewParagraphToken;
+  const combinedParagraphs: ScriptToken[] = scriptTokens.reduce((acc: ScriptToken[], elem) => {
+    if(acc.length) {
+      const last = acc[acc.length - 1];
+      if(elem.type === "PARAGRAPH" && last.type === "PARAGRAPH") {
+        last.duration = Math.max(last.duration, elem.duration);
+        last.raw += elem.raw;
+        return acc;
+      }
+    }
+    return [...acc, elem];
+  }, []);
+
+  combinedParagraphs.forEach((token, idx) => token.idx = idx);
+  if(combinedParagraphs.length) {
+    const first: NewParagraphToken = combinedParagraphs[0] as NewParagraphToken;
     first.duration = 0.1;
   }
 
-  return scriptTokens;
+  return combinedParagraphs;
 }
 
 function cleanupScript(script: string): {cleaned: string, replacements: Record<string, string>} {
@@ -94,7 +108,9 @@ function toParagraphToken(token: MarkedToken): ParagraphToken[] {
 
   if(token.type === "list") return token.items.flatMap(toParagraphToken);
   
-  return [];
+  return [{
+    raw: token.raw
+  }];
 }
 
 function combineChildren(token: Extract<MarkedToken, {tokens: MarkedToken[]}>): ParagraphToken[] {
@@ -107,28 +123,37 @@ function combineChildren(token: Extract<MarkedToken, {tokens: MarkedToken[]}>): 
 function toScriptToken(token: ChunkedToken): ScriptToken[] {
   const tokens: ScriptToken[] = [];
 
-  tokens.push({
-    idx: -1,
-    type: "PARAGRAPH",
-    duration: paragraphDelay,
-    raw: token.raw
-  });
-
-  token.text.forEach((text, idx) => {
+  if(token.text.length) {
     tokens.push({
       idx: -1,
-      type: "TEXT" as const,
-      script: text
+      type: "PARAGRAPH",
+      duration: paragraphDelay,
+      raw: token.raw
     });
-
-    if(idx < token.text.length - 1) {
+  
+    token.text.forEach((text, idx) => {
       tokens.push({
         idx: -1,
-        type: "PAUSE" as const,
-        duration: sentenceDelay
+        type: "TEXT" as const,
+        script: text
       });
-    }
-  });
+  
+      if(idx < token.text.length - 1) {
+        tokens.push({
+          idx: -1,
+          type: "PAUSE" as const,
+          duration: sentenceDelay
+        });
+      }
+    });
+  } else {
+    tokens.push({
+      idx: -1,
+      type: "PARAGRAPH",
+      duration: 0.1,
+      raw: token.raw
+    });
+  }
 
   return tokens;
 }

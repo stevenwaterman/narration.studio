@@ -20,13 +20,6 @@
   $: processingTokens = [...timingTokens, ...silenceTokens].sort((a,b) => a.idx - b.idx);
 </script>
 
-<style>
-  :global(body) {
-    overflow: hidden;
-    padding: 0;
-  }
-</style>
-
 {#if !tokens.length}
   <ScriptEntry bind:tokens/>
 {:else if data === null}
