@@ -171,16 +171,17 @@
     font-size: 36px;
   }
 
-  .button {
+  button {
     display: flex;
+    flex-direction: column;
     justify-content: center;
+    align-items: center;
     margin: 10px;
     width: 50px;
     height: 50px;
-    border-radius: 25%;
-    border: 1px solid black;
     user-select: none;
-    cursor: pointer;
+    padding: 0;
+    font-size: 24px;
   }
 
   .instruction {
@@ -225,9 +226,9 @@
   </div>
   
   <div class="buttonRow">
-    <div class="button" on:click={() => togglePause(tokens)}>{$audioStatusStore.type === "PLAYING" ? "⏸️" : "▶️"}</div>
-    <div class="button" disabled={$audioStatusStore.type !== "STOPPED"} on:click={() => stop(tokens)}>⏹️</div>
-    <div class="button" on:click={() => save(tokens)}>↓</div>
+    <button on:click={() => togglePause(tokens)}>{$audioStatusStore.type === "PLAYING" ? "⏸️" : "▶️"}</button>
+    <button disabled={$audioStatusStore.type !== "STOPPED"} on:click={() => stop(tokens)}>⏹️</button>
+    <button on:click={() => save(tokens)} style="font-size: 30px">↓</button>
   </div>
 
   <div class="instruction left">Left-click drag or shift-scroll to pan</div>

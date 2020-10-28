@@ -340,6 +340,7 @@
     top: 50vh;
     left: 10px;
     transform: translateY(-50%);
+    font-size: 30px;
   }
 
   .forwards {
@@ -347,11 +348,12 @@
     top: 50vh;
     right: 10px;
     transform: translateY(-50%);
+    font-size: 30px;
   }
 </style>
 
-<button class="back" disabled={hearing || currentTokenNumber <= minTokenNumber} on:click={() => currentTokenNumber--}>&lt;-</button>
-<button class="forwards" disabled={hearing || currentTokenNumber >= maxTokenNumber} on:click={() => currentTokenNumber++}>-&gt;</button>
+<button class="back" disabled={hearing || currentTokenNumber <= minTokenNumber} on:click={() => currentTokenNumber--}>←</button>
+<button class="forwards" disabled={hearing || currentTokenNumber >= maxTokenNumber} on:click={() => currentTokenNumber++}>→</button>
 
 <div class="column">
   <div class="prompt" class:hidden={currentTokenNumber === 0}>If you didn't like your delivery of the last line, say it again:</div>
