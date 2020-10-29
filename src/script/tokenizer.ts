@@ -1,5 +1,5 @@
 import { ScriptToken, NewParagraphToken } from "../tokens";
-import { lexer } from "marked";
+import { lexer, MarkedOptions } from "marked";
 import { MarkedToken } from "./markedTokens";
 import { v4 as uuid} from "uuid";
 
@@ -95,12 +95,18 @@ function toParagraphToken(token: MarkedToken): ParagraphToken[] {
 
   if(token.type === "paragraph") return combineChildren(token);
   if(token.type === "blockquote") return combineChildren(token);
-
-  if(token.type === "list") return token.items.flatMap(toParagraphToken);
+  if(token.type === "list") return combineList(token);
   
   return [{
     raw: token.raw
   }];
+}
+
+function combineList(token: Extract<MarkedToken, {type: "list"}>) : ParagraphToken[] {
+  const raw = token.raw;
+  const children = token.items.flatMap(toParagraphToken);
+  const text = children.map(token => token.text).join("\n");
+  return [{raw, text}];
 }
 
 function combineChildren(token: Extract<MarkedToken, {tokens: MarkedToken[]}>): ParagraphToken[] {
