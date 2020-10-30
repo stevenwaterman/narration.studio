@@ -1,10 +1,12 @@
-import { VisibleToken } from "../../tokens";
+import { EditorToken, VisibleToken } from "../../tokens";
 import RenderWorker from "web-worker:./render.ts";
 
 type RenderToken = {
   type: "PAUSE"; idx: number; duration: number;
 } | {
   type: "AUDIO"; idx: number; start: number; duration: number;
+} | {
+  type: "NOTHING"; idx: number;
 }
 
 export type RenderParams = {
@@ -53,7 +55,7 @@ export type RenderMessage = RenderMessageCreate | RenderMessageUpdateScroll | Re
 const worker: Worker = new RenderWorker();
 
 class RenderController {
-  constructor(canvas: OffscreenCanvas, buffer: AudioBuffer, tokens: VisibleToken[], scroll: number, pixelsPerSecond: number, width: number, height: number)  {
+  constructor(canvas: OffscreenCanvas, buffer: AudioBuffer, tokens: EditorToken[], scroll: number, pixelsPerSecond: number, width: number, height: number)  {
     const data: Float32Array = getData(buffer);
     const renderTokens: RenderToken[] = tokens.map(token => {
       if(token.type === "AUDIO") {
@@ -62,6 +64,11 @@ class RenderController {
           idx: token.idx,
           start: token.start,
           duration: token.duration
+        }
+      } else if(token.type === "NOTHING") {
+        return {
+          type: "NOTHING",
+          idx: token.idx
         }
       } else {
         return {

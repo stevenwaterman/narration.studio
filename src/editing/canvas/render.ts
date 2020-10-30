@@ -1,5 +1,6 @@
 import { sampleRate } from "../processor";
 import { RenderMessage, RenderMessageCreate, RenderParams } from "./renderController";
+import { VisibleToken } from "../../tokens";
 
 let offscreen: OffscreenCanvas;
 let gl: WebGL2RenderingContext;
@@ -27,7 +28,7 @@ self.addEventListener('message', ({data}: Message) => {
       renderParams.height = data.height;
     } else {
       const {idx, start, duration} = data.token;
-      const token = renderParams.tokens[idx];
+      const token: VisibleToken = renderParams.tokens[idx] as VisibleToken;
       token.duration = duration;
       if (token.type === "AUDIO" && start !== undefined) {
         token.start = start;
@@ -78,6 +79,8 @@ function drawWaveform(): void {
 
   let timecode = 0;
   for(const token of tokens) {
+    if(token.type === "NOTHING") return;
+    
     const drawAtTime = Math.max(minSecs, timecode);
     const croppedFromStart = drawAtTime - timecode;
     const startAdjustedDuration = token.duration - croppedFromStart;

@@ -30,7 +30,7 @@
 
   onMount(() => {
     const offscreen = (canvas as HTMLCanvasElement).transferControlToOffscreen();
-    controller = new RenderController(offscreen, buffer, visibleTokens, scroll, pixelsPerSecond, canvasWidth, canvasHeight);
+    controller = new RenderController(offscreen, buffer, tokens, scroll, pixelsPerSecond, canvasWidth, canvasHeight);
   });
 
   let canvasWidthSecs: number;
