@@ -3,4 +3,4 @@
 </script>
 
 <br/>
-<div>&lt;div class="timestamp-{time.toFixed(3)}"&gt;&lt;/div&gt;</div>
+<div>&lt;div id="timestamp-{time.toFixed(3)}"&gt;&lt;/div&gt;</div>
