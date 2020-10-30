@@ -69,7 +69,7 @@
 
     const oldMouseSecs = offsetX / pixelsPerSecond;
     if (shiftKey) {
-      if (deltaY) setScroll(scroll - deltaY / pixelsPerSecond);
+      if (deltaY) setScroll(scroll + deltaY / pixelsPerSecond);
     } else {
       if (deltaY < 0) pixelsPerSecond *= 1.2;
       if (deltaY > 0) pixelsPerSecond /= 1.2;
