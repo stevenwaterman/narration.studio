@@ -1,6 +1,5 @@
 import { sampleRate } from "../processor";
-import { RenderMessage, RenderMessageCreate, RenderParams } from "./renderController";
-import { VisibleToken } from "../../tokens";
+import { RenderMessage, RenderMessageCreate, RenderParams, RenderToken } from "./renderController";
 
 let offscreen: OffscreenCanvas;
 let gl: WebGL2RenderingContext;
@@ -10,6 +9,8 @@ let program: WebGLProgram;
 type Message = {
   data: RenderMessage
 };
+
+type VisibleToken = Exclude<RenderToken, {type: "NOTHING"}>;
 
 let renderParams: RenderParams = null as any;
 let initialised = false;
@@ -78,9 +79,8 @@ function drawWaveform(): void {
   const maxSecs = scroll + secondsPerClip;
 
   let timecode = 0;
-  for(const token of tokens) {
-    if(token.type === "NOTHING") return;
-    
+  const visibleTokens = tokens.filter(token => token.type !== "NOTHING") as VisibleToken[];
+  for(const token of visibleTokens) {
     const drawAtTime = Math.max(minSecs, timecode);
     const croppedFromStart = drawAtTime - timecode;
     const startAdjustedDuration = token.duration - croppedFromStart;

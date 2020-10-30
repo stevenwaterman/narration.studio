@@ -1,7 +1,7 @@
 import { EditorToken, VisibleToken } from "../../tokens";
 import RenderWorker from "web-worker:./render.ts";
 
-type RenderToken = {
+export type RenderToken = {
   type: "PAUSE"; idx: number; duration: number;
 } | {
   type: "AUDIO"; idx: number; start: number; duration: number;
