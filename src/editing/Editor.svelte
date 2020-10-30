@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { audioStatusStore, play, sampleRate, save, stop, togglePause } from "./processor";
+  import { audioStatusStore, pause, play, sampleRate, save, stop, togglePause } from "./processor";
   import type { EditorToken, VisibleToken } from "../tokens";
   import RenderController from "./canvas/renderController";
   import Timestamps from "./overlay/Timestamps.svelte";
@@ -126,8 +126,7 @@
     tokens[token.idx] = token;
     renderTokenChange(token);
     saveChangedToken(token);
-    stop(tokens);
-    
+    pause(tokens);
   }
 </script>
 
