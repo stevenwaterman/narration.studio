@@ -226,9 +226,9 @@
   </div>
   
   <div class="buttonRow">
-    <button on:click={() => togglePause(tokens)}>{$audioStatusStore.type === "PLAYING" ? "⏸️" : "▶️"}</button>
-    <button disabled={$audioStatusStore.type !== "STOPPED"} on:click={() => stop(tokens)}>⏹️</button>
-    <button on:click={() => save(tokens)} style="font-size: 30px">↓</button>
+    <button on:click|preventDefault={() => togglePause(tokens)}>{$audioStatusStore.type === "PLAYING" ? "⏸️" : "▶️"}</button>
+    <button disabled={$audioStatusStore.type !== "STOPPED"} on:click|preventDefault={() => stop(tokens)}>⏹️</button>
+    <button on:click|preventDefault={() => save(tokens)} style="font-size: 30px">↓</button>
   </div>
 
   <div class="instruction left">Left-click drag or shift-scroll to pan</div>
