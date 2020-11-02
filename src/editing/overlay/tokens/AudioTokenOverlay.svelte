@@ -115,14 +115,14 @@
 {#if width > 10}
   <div class="audioTokenContainer" style={`width: ${width}px; left: ${left}px;`}>
     <div class="panRegion" on:mousedown|preventDefault={dragStart({
-      button: "RIGHT",
+      button: "LEFT",
       onDrag: panHandler,
       otherInfoGetter: () => token.start,
       onEnd: () => clamped = null
     })}/>
 
     <div class="stretchRegion" class:hidden={stretching} on:mousedown|preventDefault={dragStart({
-      button: "RIGHT", 
+      button: "LEFT", 
       onDrag: stretchHandler, 
       otherInfoGetter: () => {stretching = true; return token.duration}, 
       onEnd: () => {stretching = false; clamped = null}

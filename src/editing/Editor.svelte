@@ -5,7 +5,7 @@
   import Timestamps from "./overlay/Timestamps.svelte";
   import PlayCursor from "./overlay/PlayCursor.svelte";
   import TokensOverlay from "./overlay/tokens/TokensOverlay.svelte";
-  import { dragStart, drag, dragEnd } from "../drag";
+  import { drag, dragEnd } from "../drag";
   import ScriptDisplay from "./ScriptDisplay.svelte";
   import { onMount } from "svelte";
   import { saveChangedToken } from "./persistence";
@@ -55,11 +55,6 @@
     scroll = Math.min(Math.max(minScroll, value), maxScroll);
   }
 
-  function dragHandler(delta: number, startScroll: number) {
-      const dragSec = delta / pixelsPerSecond;
-      setScroll(startScroll - dragSec);
-  }
-
   function onWheel(event: WheelEvent) {
     if(!canvas) return;
     const width = canvas.width;
@@ -69,11 +64,11 @@
 
     const oldMouseSecs = offsetX / pixelsPerSecond;
     if (shiftKey) {
-      if (deltaY) setScroll(scroll + deltaY / pixelsPerSecond);
-    } else {
       if (deltaY < 0) pixelsPerSecond *= 1.2;
       if (deltaY > 0) pixelsPerSecond /= 1.2;
       pixelsPerSecond = Math.min(100 * 1000, pixelsPerSecond);
+    } else {
+      if (deltaY) setScroll(scroll + deltaY / pixelsPerSecond);
     }
     if (deltaX) setScroll(scroll + deltaX / pixelsPerSecond)
     
@@ -201,22 +196,16 @@
 
 <div class="container"
   on:mousemove={drag}
+  on:mouseup|preventDefault={dragEnd}
+  on:mouseout|preventDefault|self={dragEnd}
 >
   <ScriptDisplay {tokens} {scroll} {cursorPositionSeconds}/>
 
   <div class="canvasContainer"
-  on:mousedown|preventDefault={dragStart({
-    button: "LEFT", 
-    onDrag: dragHandler,
-    otherInfoGetter: () => scroll,
-    onEnd: () => {}
-  })}
-  on:mouseup|preventDefault={dragEnd}
-  on:mouseout|preventDefault|self={dragEnd}
-  on:wheel|preventDefault={onWheel}
-  on:contextmenu|preventDefault
-  bind:clientWidth={canvasWidth}
-  bind:clientHeight={canvasHeight}
+    on:wheel|preventDefault={onWheel}
+    on:contextmenu|preventDefault
+    bind:clientWidth={canvasWidth}
+    bind:clientHeight={canvasHeight}
   >
     <PlayCursor {scroll} {duration} {pixelsPerSecond} on:timechange={timechange}/>
     <Timestamps bind:cursorPositionSeconds {scroll} {pixelsPerSecond} {duration} on:play={e => play(tokens, e.detail)}/>
@@ -230,7 +219,7 @@
     <button on:click|preventDefault={() => save(tokens)} style="font-size: 30px">↓</button>
   </div>
 
-  <div class="instruction left">Left-click drag or shift-scroll to pan</div>
-  <div class="instruction right">Right-click drag to adjust offset and duration</div>
+  <div class="instruction left">Scroll to pan, hold shift to zoom</div>
+  <div class="instruction right">Left-click drag to adjust offset and duration</div>
 </div>
 <svelte:body on:keypress={keypress}/>

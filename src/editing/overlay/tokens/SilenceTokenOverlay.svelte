@@ -35,7 +35,7 @@
 
 {#if width > 10}
   <div class="silenceTokenContainer" style={`width: ${width}px; left: ${left}px`} on:mousedown|preventDefault={dragStart({
-    button: "RIGHT", 
+    button: "LEFT", 
     onDrag: drag, 
     otherInfoGetter: () => {showTime = true; return token.duration}, 
     onEnd: () => {showTime = false}
