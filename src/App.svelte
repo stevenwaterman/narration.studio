@@ -7,7 +7,8 @@
 
   const browser = Bowser.getParser(window.navigator.userAgent);
   const isValidBrowser: boolean = browser.satisfies({
-    chrome: ">=69"
+    chrome: ">=69",
+    edge: ">=79"
   }) || false;
 
   let loadFromSave: boolean | null = null;
